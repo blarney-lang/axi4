@@ -1,15 +1,20 @@
-{-# LANGUAGE DataKinds #-}
-{-# LANGUAGE PolyKinds #-}
+{-# LANGUAGE DataKinds       #-}
+{-# LANGUAGE PolyKinds       #-}
+{-# LANGUAGE RecordWildCards #-}
 
 module Blarney.AXI4.Types (
 ) where
 
 import Blarney
 import Blarney.Vector
+import Blarney.SourceSink
 import Blarney.AXI4TypesCommon
 
+-- AW channel (write request address)
+--------------------------------------------------------------------------------
+
 -- | AXI4 "AW" write address channel
-data AXI4_AWFlit id_bits addr_bits user_bits =
+data AXI4_AWFlit id_bits addr_bits awuser_bits =
   AXI4_AWFlit {
     awid     :: Bit id_bits
   , awaddr   :: Bit addr_bits
@@ -21,31 +26,114 @@ data AXI4_AWFlit id_bits addr_bits user_bits =
   , awprot   :: AXI4_Prot
   , awqos    :: AXI4_QoS
   , awregion :: AXI4_Region
-  , awuser   :: Bit user_bits
+  , awuser   :: Bit awuser_bits
   } deriving (Generic, Bits)
+
+-- | Flatten 'Source's of 'AWFlit's for AXI4 compliant interface
+instance {-# OVERLAPPING #-}
+  Interface (Source (AXI4_AWFlit id_bits addr_bits awuser_bits)) where
+  toIfc src = toPorts ("awvalid", src.canPeek)
+                      ("awready", when src.canPeek do src.consume)
+                      ("awid", src.peek.awid)
+                      ("awaddr", src.peek.awaddr)
+                      ("awlen", src.peek.awlen)
+                      ("awsize", src.peek.awsize)
+                      ("awburst", src.peek.awburst)
+                      ("awlock", src.peek.awlock)
+                      ("awcache", src.peek.awcache)
+                      ("awprot", src.peek.awprot)
+                      ("awqos", src.peek.awqos)
+                      ("awregion", src.peek.awregion)
+                      ("awuser", src.peek.awuser)
+  fromIfc ifc = fromPorts ifc \awvalid awready awid awaddr awlen awsize
+                               awburst awlock awcache awprot awqos
+                               awregion awuser ->
+                  Source {
+                    canPeek = awvalid
+                  , consume = awready
+                  , peek = AXI4_AWFlit {..}
+                  }
+
+-- | Flatten 'Sink's of 'AWFlit's for AXI4 compliant interface
+instance {-# OVERLAPPING #-}
+  Interface (Sink (AXI4_AWFlit id_bits addr_bits awuser_bits)) where
+  toIfc snk = error "TODO"
+  fromIfc ifc = error "TODO"
+
+-- W channel (write request data)
+--------------------------------------------------------------------------------
 
 -- | AXI4 "W" write data channel
-data AXI4_WFlit data_bytes user_bits =
+data AXI4_WFlit data_bytes wuser_bits =
   AXI4_WFlit {
-    wdata :: Vector data_bytes (Bit 8)
+    wdata :: Vec data_bytes (Bit 8)
   , wstrb :: Bit data_bytes
   , wlast :: Bit 1
-  , wuser :: Bit user_bits
+  , wuser :: Bit wuser_bits
   } deriving (Generic, Bits)
 
+-- | Flatten 'Source's of 'WFlit's for AXI4 compliant interface
+instance {-# OVERLAPPING #-}
+  Interface (Source (AXI4_WFlit data_bytes wuser_bits)) where
+  toIfc src = toPorts ("wvalid", src.canPeek)
+                      ("wready", when src.canPeek do src.consume)
+                      ("wdata", src.peek.wdata)
+                      ("wstrb", src.peek.wstrb)
+                      ("wlast", src.peek.wlast)
+                      ("wuser", src.peek.wuser)
+  fromIfc ifc = fromPorts ifc \wvalid wready wdata wstrb wlast wuser ->
+                  Source {
+                    canPeek = wvalid
+                  , consume = wready
+                  , peek = AXI4_WFlit {..}
+                  }
+
+-- | Flatten 'Sink's of 'WFlit's for AXI4 compliant interface
+instance {-# OVERLAPPING #-}
+  Interface (Sink (AXI4_WFlit data_bytes wuser_bits)) where
+  toIfc snk = error "TODO"
+  fromIfc ifc = error "TODO"
+
+-- B channel (write response)
+--------------------------------------------------------------------------------
+
 -- | AXI4 "B" write response channel
-data AXI4_BFlit id_bits user_bits =
+data AXI4_BFlit id_bits buser_bits =
   AXI4_BFlit {
     bid   :: Bit id_bits
   , bresp :: AXI4_Resp
-  , buser :: Bit user_bits
+  , buser :: Bit buser_bits
   } deriving (Generic, Bits)
 
+-- | Flatten 'Source's of 'BFlit's for AXI4 compliant interface
+instance {-# OVERLAPPING #-}
+  Interface (Source (AXI4_BFlit id_bits buser_bits)) where
+  toIfc src = toPorts ("bvalid", src.canPeek)
+                      ("bready", when src.canPeek do src.consume)
+                      ("bid", src.peek.bid)
+                      ("bresp", src.peek.bresp)
+                      ("buser", src.peek.buser)
+  fromIfc ifc = fromPorts ifc \bvalid bready bid bresp buser ->
+                  Source {
+                    canPeek = bvalid
+                  , consume = bready
+                  , peek = AXI4_BFlit {..}
+                  }
+
+-- | Flatten 'Sink's of 'BFlit's for AXI4 compliant interface
+instance {-# OVERLAPPING #-}
+  Interface (Sink (AXI4_BFlit id_bits buser_bits)) where
+  toIfc snk = error "TODO"
+  fromIfc ifc = error "TODO"
+
+-- AR channel (read request address)
+--------------------------------------------------------------------------------
+
 -- | AXI4 "AR" read address channel
-data AXI4_ARFlit id_sz addr_sz user_sz =
+data AXI4_ARFlit id_bits addr_bits aruser_bits =
   AXI4_ARFlit {
-    arid     :: Bit id_sz
-  , araddr   :: Bit addr_sz
+    arid     :: Bit id_bits
+  , araddr   :: Bit addr_bits
   , arlen    :: AXI4_Len
   , arsize   :: AXI4_Size
   , arburst  :: AXI4_Burst
@@ -54,18 +142,78 @@ data AXI4_ARFlit id_sz addr_sz user_sz =
   , arprot   :: AXI4_Prot
   , arqos    :: AXI4_QoS
   , arregion :: AXI4_Region
-  , aruser   :: Bit user_sz
+  , aruser   :: Bit aruser_bits
   } deriving (Generic, Bits)
 
+-- | Flatten 'Source's of 'ARFlit's for AXI4 compliant interface
+instance {-# OVERLAPPING #-}
+  Interface (Source (AXI4_ARFlit id_bits addr_bits aruser_bits)) where
+  toIfc src = toPorts ("arvalid", src.canPeek)
+                      ("arready", when src.canPeek do src.consume)
+                      ("arid", src.peek.arid)
+                      ("araddr", src.peek.araddr)
+                      ("arlen", src.peek.arlen)
+                      ("arsize", src.peek.arsize)
+                      ("arburst", src.peek.arburst)
+                      ("arlock", src.peek.arlock)
+                      ("arcache", src.peek.arcache)
+                      ("arprot", src.peek.arprot)
+                      ("arqos", src.peek.arqos)
+                      ("arregion", src.peek.arregion)
+                      ("aruser", src.peek.aruser)
+  fromIfc ifc = fromPorts ifc \arvalid arready arid araddr arlen arsize
+                               arburst arlock arcache arprot arqos
+                               arregion aruser ->
+                  Source {
+                    canPeek = arvalid
+                  , consume = arready
+                  , peek = AXI4_ARFlit {..}
+                  }
+
+-- | Flatten 'Sink's of 'ARFlit's for AXI4 compliant interface
+instance {-# OVERLAPPING #-}
+  Interface (Sink (AXI4_ARFlit id_bits addr_bits aruser_bits)) where
+  toIfc snk = error "TODO"
+  fromIfc ifc = error "TODO"
+
+-- R channel (read response)
+--------------------------------------------------------------------------------
+
 -- | AXI4 "R" read response channel
-data AXI4_RFlit id_bits data_bytes user_bits =
+data AXI4_RFlit id_bits data_bytes ruser_bits =
   AXI4_RFlit {
     rid   :: Bit id_bits
-  , rdata :: Vector data_bytes (Bit 8)
+  , rdata :: Vec data_bytes (Bit 8)
   , rresp :: AXI4_Resp
   , rlast :: Bit 1
-  , ruser :: Bit user_bits
+  , ruser :: Bit ruser_bits
   } deriving (Generic, Bits)
+
+-- | Flatten 'Source's of 'RFlit's for AXI4 compliant interface
+instance {-# OVERLAPPING #-}
+  Interface (Source (AXI4_RFlit id_bits data_bytes ruser_bits)) where
+  toIfc src = toPorts ("rvalid", src.canPeek)
+                      ("rready", when src.canPeek do src.consume)
+                      ("rid", src.peek.rid)
+                      ("rdata", src.peek.rdata)
+                      ("rresp", src.peek.rresp)
+                      ("rlast", src.peek.rlast)
+                      ("ruser", src.peek.ruser)
+  fromIfc ifc = fromPorts ifc \rvalid rready rid rdata rresp rlast ruser ->
+                  Source {
+                    canPeek = rvalid
+                  , consume = rready
+                  , peek = AXI4_RFlit {..}
+                  }
+
+-- | Flatten 'Sink's of 'RFlit's for AXI4 compliant interface
+instance {-# OVERLAPPING #-}
+  Interface (Sink (AXI4_RFlit id_bits data_bytes ruser_bits)) where
+  toIfc snk = error "TODO"
+  fromIfc ifc = error "TODO"
+
+-- AXI4 Manager / Subordinates
+--------------------------------------------------------------------------------
 
 -- | AXI4 parameter container
 data AXI4_Params -- | number of bits for the AXI4 ID fiels
@@ -95,7 +243,7 @@ data AXI4_Manager (params :: AXI4_Params id_bits addr_bits data_bytes
   , b  :: Sink   (AXI4_BFlit id_bits buser_bits)
   , ar :: Source (AXI4_ARFlit id_bits addr_bits aruser_bits)
   , r  :: Sink   (AXI4_RFlit id_bits data_bytes ruser_bits)
-  } deriving (Generic, Bits)
+  } deriving (Generic, Interface)
 
 -- | AXI4 subordinate
 data AXI4_Subordinate (params :: AXI4_Params id_bits addr_bits data_bytes
@@ -107,35 +255,11 @@ data AXI4_Subordinate (params :: AXI4_Params id_bits addr_bits data_bytes
   , b  :: Source (AXI4_BFlit id_bits buser_bits)
   , ar :: Sink   (AXI4_ARFlit id_bits addr_bits aruser_bits)
   , r  :: Source (AXI4_RFlit id_bits data_bytes ruser_bits)
-  } deriving (Generic, Bits)
+  } deriving (Generic, Interface)
 
 -- | AXI4 shim
 data AXI4_Shim params_sub params_mgr =
   AXI4_Shim {
-    subordinate :: AXI4_Subordinate param_sub
+    subordinate :: AXI4_Subordinate params_sub
   , manager     :: AXI4_Manager params_mgr
-  } deriving (Generic, Bits)
-
--- | Flatten sources of flits for AXI4 compliant interface
-instance Interface (Source (AXI4_AWFlit id_bits addr_bits awuser_bits)) where
-  toIfc src = toPorts ("valid", src.canPeek)
-                      ("ready", when src.canPeek do src.consume)
-                      ("awid", src.peek.awid)
-                      ("awaddr", src.peek.awaddr)
-                      ("awlen", src.peek.awlen)
-                      ("awsize", src.peek.awsize)
-                      ("awburst", src.peek.awburst)
-                      ("awlock", src.peek.awlock)
-                      ("awcache", src.peek.awcache)
-                      ("awprot", src.peek.awprot)
-                      ("awqos", src.peek.awqos)
-                      ("awregion", src.peek.awregion)
-                      ("awuser", src.peek.awuser)
-  fromIfc ifc = fromPorts ifc \valid ready awid awaddr awlen awsize
-                               awburst awlock awcache awprot awqos
-                               awregion awuser ->
-                  Source {
-                    canPeek = valid
-                  , consume = ready
-                  , peek = AXI4_AWFlit {..}
-                  }
+  } deriving (Generic, Interface)
