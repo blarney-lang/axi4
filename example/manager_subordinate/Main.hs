@@ -6,7 +6,7 @@ import Blarney.AXI4
 mkTestManager :: Module (AXI4_Manager ps)
 mkTestManager = do
   -- declare a shim to implement the interface in a simple manner
-  let shim <- mkAXI4BufferShimFF
+  shim <- mkAXI4BufferShimFF
   -- use the subordinate side of the shim internally
   always do
     -- typical write request send
@@ -30,7 +30,7 @@ mkTestManager = do
 mkTestSubordinate :: Module (AXI4_Subordinate ps)
 mkTestSubordinate = do
   -- declare a shim to implement the interface in a simple manner
-  let shim <- mkAXI4BufferShimFF
+  shim <- mkAXI4BufferShimFF
   -- use the manager side of the shim internally
   always do
     -- typical write request receive
