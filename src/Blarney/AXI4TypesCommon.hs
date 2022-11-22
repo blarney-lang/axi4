@@ -23,15 +23,15 @@ type AXI4_Len = Bit 8
 type AXI4_Size = Bit 3
 
 -- | AXI4 burst type
-newtype AXI4_Burst = AXI4_Burst (Bit 2) deriving (Generic, Cmp, Bits)
+newtype AXI4_Burst = AXI4_Burst (Bit 2) deriving (Generic, Cmp, Bits, Interface)
 fixed = AXI4_Burst 0b00
 incr = AXI4_Burst 0b01
 wrap = AXI4_Burst 0b10
 reserved = AXI4_Burst 0b11
 
 -- | AXI4 locked accesses type
-newtype AXI4_Lock = AXI4_Lock (Bit 1) deriving (Generic, Cmp, Bits)
-normal = AXI4_lock 0b0
+newtype AXI4_Lock = AXI4_Lock (Bit 1) deriving (Generic, Cmp, Bits, Interface)
+normal = AXI4_Lock 0b0
 exclusive = AXI4_Lock 0b1
 
 -- | AXI4 "cache" memory attributes
@@ -76,7 +76,7 @@ prot_0_unpriv = AXI4_Prot_0 0b0
 prot_0_priv = AXI4_Prot_0 0b1
 
 axi4Prot :: AXI4_Prot_2 -> AXI4_Prot_1 -> AXI4_Prot_0 -> AXI4_Prot
-axi4Prot x y z = x # y # z
+axi4Prot x y z = pack x # pack y # pack z
 
 -- | AXI4 QoS signaling
 type AXI4_QoS = Bit 4
@@ -85,7 +85,7 @@ type AXI4_QoS = Bit 4
 type AXI4_Region = Bit 4
 
 -- | AXI4 response values
-newtype AXI4_Resp = AXI4_Resp (Bit 2) deriving (Generic, Cmp, Bits)
+newtype AXI4_Resp = AXI4_Resp (Bit 2) deriving (Generic, Cmp, Bits, Interface)
 okay = AXI4_Resp 0b00
 exokay = AXI4_Resp 0b01
 slverr = AXI4_Resp 0b10
