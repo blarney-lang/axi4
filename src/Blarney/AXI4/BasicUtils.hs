@@ -5,6 +5,7 @@ module Blarney.AXI4.BasicUtils (
 ) where
 
 import Blarney
+import Blarney.AXI4.Types
 
 -- | AXI4 buffer shim
 
@@ -32,11 +33,11 @@ mkAXI4BufferShim_Core ::
   -> Module (r_buff rflit)
   -> Module (AXI4_Shim params params)
 mkAXI4BufferShim_Core mkAWBuff mkWBuff mkBBuff mkARBuff mkRBuff = do
-  let awbuff <- mkAWBuff
-  let  wbuff <- mkWBuff
-  let  bbuff <- mkBBuff
-  let arbuff <- mkARBuff
-  let  rbuff <- mkRBuff
+  awbuff <- mkAWBuff
+  wbuff  <- mkWBuff
+  bbuff  <- mkBBuff
+  arbuff <- mkARBuff
+  rbuff  <- mkRBuff
   return AXI4_Shim { manager = AXI4_Manager { aw = toSource awbuff
                                             ,  w = toSource wbuff
                                             ,  b = toSink bbuff
