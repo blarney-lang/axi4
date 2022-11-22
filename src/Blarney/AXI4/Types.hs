@@ -9,7 +9,8 @@ import Blarney.Vector
 import Blarney.AXI4TypesCommon
 
 -- | AXI4 "AW" write address channel
-data AXI4_AWFlit id_bits addr_bits user_bits = AXI4_AWFlit {
+data AXI4_AWFlit id_bits addr_bits user_bits =
+  AXI4_AWFlit {
     awid     :: Bit id_bits
   , awaddr   :: Bit addr_bits
   , awlen    :: AXI4_Len
@@ -24,7 +25,8 @@ data AXI4_AWFlit id_bits addr_bits user_bits = AXI4_AWFlit {
   } deriving (Generic, Bits)
 
 -- | AXI4 "W" write data channel
-data AXI4_WFlit data_bytes user_bits = AXI4_WFlit {
+data AXI4_WFlit data_bytes user_bits =
+  AXI4_WFlit {
     wdata :: Vector data_bytes (Bit 8)
   , wstrb :: Bit data_bytes
   , wlast :: Bit 1
@@ -32,14 +34,16 @@ data AXI4_WFlit data_bytes user_bits = AXI4_WFlit {
   } deriving (Generic, Bits)
 
 -- | AXI4 "B" write response channel
-data AXI4_BFlit id_bits user_bits = AXI4_BFlit {
+data AXI4_BFlit id_bits user_bits =
+  AXI4_BFlit {
     bid   :: Bit id_bits
   , bresp :: AXI4_Resp
   , buser :: Bit user_bits
   } deriving (Generic, Bits)
 
 -- | AXI4 "AR" read address channel
-data AXI4_ARFlit id_sz addr_sz user_sz = AXI4_ARFlit {
+data AXI4_ARFlit id_sz addr_sz user_sz =
+  AXI4_ARFlit {
     arid     :: Bit id_sz
   , araddr   :: Bit addr_sz
   , arlen    :: AXI4_Len
@@ -54,7 +58,8 @@ data AXI4_ARFlit id_sz addr_sz user_sz = AXI4_ARFlit {
   } deriving (Generic, Bits)
 
 -- | AXI4 "R" read response channel
-data AXI4_RFlit id_bits data_bytes user_bits = AXI4_RFlit {
+data AXI4_RFlit id_bits data_bytes user_bits =
+  AXI4_RFlit {
     rid   :: Bit id_bits
   , rdata :: Vector data_bytes (Bit 8)
   , rresp :: AXI4_Resp
@@ -81,9 +86,10 @@ data AXI4_Params -- | number of bits for the AXI4 ID fiels
                  ruser_bits
 
 -- | AXI4 manager
-data AXI4_Manager (AXI4_Params id_bits addr_bits data_bytes
-                               awuser_bits wuser_bits buser_bits
-                               aruser_bits ruser_bits) = AXI4_Manager {
+data AXI4_Manager (params :: AXI4_Params id_bits addr_bits data_bytes
+                                         awuser_bits wuser_bits buser_bits
+                                         aruser_bits ruser_bits) =
+  AXI4_Manager {
     aw :: Source (AXI4_AWFlit id_bits addr_bits awuser_bits)
   , w  :: Source (AXI4_WFlit data_bytes wuser_bits)
   , b  :: Sink   (AXI4_BFlit id_bits buser_bits)
@@ -92,9 +98,10 @@ data AXI4_Manager (AXI4_Params id_bits addr_bits data_bytes
   } deriving (Generic, Bits)
 
 -- | AXI4 subordinate
-data AXI4_Subordinate (AXI4_Params id_bits addr_bits data_bytes
-                                   awuser_bits wuser_bits buser_bits
-                                   aruser_bits ruser_bits) = AXI4_Subordinate {
+data AXI4_Subordinate (params :: AXI4_Params id_bits addr_bits data_bytes
+                                             awuser_bits wuser_bits buser_bits
+                                             aruser_bits ruser_bits) =
+  AXI4_Subordinate {
     aw :: Sink   (AXI4_AWFlit id_bits addr_bits awuser_bits)
   , w  :: Sink   (AXI4_WFlit data_bytes wuser_bits)
   , b  :: Source (AXI4_BFlit id_bits buser_bits)
@@ -103,7 +110,32 @@ data AXI4_Subordinate (AXI4_Params id_bits addr_bits data_bytes
   } deriving (Generic, Bits)
 
 -- | AXI4 shim
-data AXI4_Shim pSub pMngr = AXI4_Shim {
-    subordinate :: AXI4_Subordinate pSub
-  , manager     :: AXI4_Manager pMngr
+data AXI4_Shim params_sub params_mgr =
+  AXI4_Shim {
+    subordinate :: AXI4_Subordinate param_sub
+  , manager     :: AXI4_Manager params_mgr
   } deriving (Generic, Bits)
+
+-- | Flatten sources of flits for AXI4 compliant interface
+instance Interface (Source (AXI4_AWFlit id_bits addr_bits awuser_bits)) where
+  toIfc src = toPorts ("valid", src.canPeek)
+                      ("ready", when src.canPeek do src.consume)
+                      ("awid", src.peek.awid)
+                      ("awaddr", src.peek.awaddr)
+                      ("awlen", src.peek.awlen)
+                      ("awsize", src.peek.awsize)
+                      ("awburst", src.peek.awburst)
+                      ("awlock", src.peek.awlock)
+                      ("awcache", src.peek.awcache)
+                      ("awprot", src.peek.awprot)
+                      ("awqos", src.peek.awqos)
+                      ("awregion", src.peek.awregion)
+                      ("awuser", src.peek.awuser)
+  fromIfc ifc = fromPorts ifc \valid ready awid awaddr awlen awsize
+                               awburst awlock awcache awprot awqos
+                               awregion awuser ->
+                  Source {
+                    canPeek = valid
+                  , consume = ready
+                  , peek = AXI4_AWFlit {..}
+                  }
