@@ -31,34 +31,56 @@ data AXI4_AWFlit id_bits addr_bits awuser_bits =
 
 -- | Flatten 'Source's of 'AWFlit's for AXI4 compliant interface
 instance {-# OVERLAPPING #-}
-  Interface (Source (AXI4_AWFlit id_bits addr_bits awuser_bits)) where
-  toIfc src = toPorts ("awvalid", src.canPeek)
-                      ("awready", when src.canPeek do src.consume)
-                      ("awid", src.peek.awid)
-                      ("awaddr", src.peek.awaddr)
-                      ("awlen", src.peek.awlen)
-                      ("awsize", src.peek.awsize)
-                      ("awburst", src.peek.awburst)
-                      ("awlock", src.peek.awlock)
-                      ("awcache", src.peek.awcache)
-                      ("awprot", src.peek.awprot)
-                      ("awqos", src.peek.awqos)
-                      ("awregion", src.peek.awregion)
-                      ("awuser", src.peek.awuser)
-  fromIfc ifc = fromPorts ifc \awvalid awready awid awaddr awlen awsize
-                               awburst awlock awcache awprot awqos
-                               awregion awuser ->
-                  Source {
-                    canPeek = awvalid
-                  , consume = awready
-                  , peek = AXI4_AWFlit {..}
-                  }
+     (KnownNat id_bits, KnownNat addr_bits, KnownNat awuser_bits) =>
+  => Interface (Source (AXI4_AWFlit id_bits addr_bits awuser_bits)) where
+
+  toIfc src = toPorts
+    (portName "awvalid",           src.canPeek)
+    (portMethodEn "awready" "" [], when src.canPeek do src.consume)
+    (portName "awid",              src.peek.awid)
+    (portName "awaddr",            src.peek.awaddr)
+    (portName "awlen",             src.peek.awlen)
+    (portName "awsize",            src.peek.awsize)
+    (portName "awburst",           src.peek.awburst)
+    (portName "awlock",            src.peek.awlock)
+    (portName "awcache",           src.peek.awcache)
+    (portName "awprot",            src.peek.awprot)
+    (portName "awqos",             src.peek.awqos)
+    (portName "awregion",          src.peek.awregion)
+    (portName "awuser",            src.peek.awuser)
+
+  fromIfc ifc =
+    fromPorts ifc \awvalid awready awid awaddr awlen awsize
+                   awburst awlock awcache awprot awqos
+                   awregion awuser ->
+      Source {
+        canPeek = awvalid
+      , consume = awready
+      , peek = AXI4_AWFlit {..}
+      }
 
 -- | Flatten 'Sink's of 'AWFlit's for AXI4 compliant interface
 instance {-# OVERLAPPING #-}
-  Interface (Sink (AXI4_AWFlit id_bits addr_bits awuser_bits)) where
-  toIfc snk = error "TODO"
-  fromIfc ifc = error "TODO"
+     (KnownNat id_bits, KnownNat addr_bits, KnownNat awuser_bits) =>
+  => Interface (Sink (AXI4_AWFlit id_bits addr_bits awuser_bits)) where
+
+  toIfc snk = toPorts
+    (portName "awready", snk.canPut)
+    (portMethodAlwaysEn "" ["awid", "awaddr", "awlen", "awsize",
+                            "awburst", "awlock", "awcache", "awprot",
+                            "awqos" "awregion" "awuser"],
+       \awid awaddr awlen awsize awburst awlock
+        awcache awprot awqos awregion awuser ->
+          snk.put (AXI4_AWFlit {..}))
+
+  fromIfc ifc =
+    fromPorts ifc \awready bigPut ->
+      Sink {
+        canPut = awready
+      , put f = bigPut f.awid f.awaddr f.awlen f.awsize f.awburst f.awlock
+                       f.awcache f.awprot f.awqos f.awregion f.awuser
+      }
+  
 
 -- W channel (write request data)
 --------------------------------------------------------------------------------
