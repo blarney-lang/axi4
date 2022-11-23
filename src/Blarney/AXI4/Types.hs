@@ -31,7 +31,7 @@ data AXI4_AWFlit id_bits addr_bits awuser_bits =
 
 -- | Flatten 'Source's of 'AWFlit's for AXI4 compliant interface
 instance {-# OVERLAPPING #-}
-     (KnownNat id_bits, KnownNat addr_bits, KnownNat awuser_bits) =>
+  (KnownNat id_bits, KnownNat addr_bits, KnownNat awuser_bits)
   => Interface (Source (AXI4_AWFlit id_bits addr_bits awuser_bits)) where
 
   toIfc src = toPorts
@@ -50,37 +50,37 @@ instance {-# OVERLAPPING #-}
     (portName "awuser",            src.peek.awuser)
 
   fromIfc ifc =
-    fromPorts ifc \awvalid awready awid awaddr awlen awsize
-                   awburst awlock awcache awprot awqos
-                   awregion awuser ->
+    fromPorts ifc \canPeekVal consumeAct
+                   awid awaddr awlen awsize awburst awlock
+                   awcache awprot awqos awregion awuser ->
       Source {
-        canPeek = awvalid
-      , consume = awready
+        canPeek = canPeekVal
+      , consume = consumeAct
       , peek = AXI4_AWFlit {..}
-      }
+      } :: Source (AXI4_AWFlit id_bits addr_bits awuser_bits)
 
 -- | Flatten 'Sink's of 'AWFlit's for AXI4 compliant interface
 instance {-# OVERLAPPING #-}
-     (KnownNat id_bits, KnownNat addr_bits, KnownNat awuser_bits) =>
+  (KnownNat id_bits, KnownNat addr_bits, KnownNat awuser_bits)
   => Interface (Sink (AXI4_AWFlit id_bits addr_bits awuser_bits)) where
 
   toIfc snk = toPorts
     (portName "awready", snk.canPut)
-    (portMethodAlwaysEn "" ["awid", "awaddr", "awlen", "awsize",
-                            "awburst", "awlock", "awcache", "awprot",
-                            "awqos" "awregion" "awuser"],
-       \awid awaddr awlen awsize awburst awlock
-        awcache awprot awqos awregion awuser ->
-          snk.put (AXI4_AWFlit {..}))
+    ( portMethodEn "" "awvalid"
+        [ "awid", "awaddr", "awlen", "awsize", "awburst", "awlock"
+        , "awcache", "awprot", "awqos", "awregion", "awuser" ]
+    , \awid awaddr awlen awsize awburst awlock
+       awcache awprot awqos awregion awuser ->
+         when snk.canPut do snk.put AXI4_AWFlit{..} )
 
   fromIfc ifc =
-    fromPorts ifc \awready bigPut ->
+    fromPorts ifc \canPutVal putAct ->
       Sink {
-        canPut = awready
-      , put = \f -> bigPut f.awid f.awaddr f.awlen f.awsize f.awburst f.awlock
-                           f.awcache f.awprot f.awqos f.awregion f.awuser
+        canPut = canPutVal
+      , put = \(f :: AXI4_AWFlit id_bits addr_bits awuser_bits) ->
+                putAct f.awid f.awaddr f.awlen f.awsize f.awburst f.awlock
+                       f.awcache f.awprot f.awqos f.awregion f.awuser
       }
-  
 
 -- W channel (write request data)
 --------------------------------------------------------------------------------
@@ -96,25 +96,42 @@ data AXI4_WFlit data_bytes wuser_bits =
 
 -- | Flatten 'Source's of 'WFlit's for AXI4 compliant interface
 instance {-# OVERLAPPING #-}
-  Interface (Source (AXI4_WFlit data_bytes wuser_bits)) where
-  toIfc src = toPorts ("wvalid", src.canPeek)
-                      ("wready", when src.canPeek do src.consume)
-                      ("wdata", src.peek.wdata)
-                      ("wstrb", src.peek.wstrb)
-                      ("wlast", src.peek.wlast)
-                      ("wuser", src.peek.wuser)
-  fromIfc ifc = fromPorts ifc \wvalid wready wdata wstrb wlast wuser ->
-                  Source {
-                    canPeek = wvalid
-                  , consume = wready
-                  , peek = AXI4_WFlit {..}
-                  }
+  (KnownNat data_bytes, KnownNat wuser_bits)
+  => Interface (Source (AXI4_WFlit data_bytes wuser_bits)) where
+
+  toIfc src = toPorts
+    (portName "wvalid",           src.canPeek)
+    (portMethodEn "wready" "" [], when src.canPeek do src.consume)
+    (portName "wdata",            src.peek.wdata)
+    (portName "wstrb",            src.peek.wstrb)
+    (portName "wlast",            src.peek.wlast)
+    (portName "wuser",            src.peek.wuser)
+
+  fromIfc ifc =
+    fromPorts ifc \canPeekVal consumeAct wdata wstrb wlast wuser ->
+      Source {
+        canPeek = canPeekVal
+      , consume = consumeAct
+      , peek = AXI4_WFlit {..}
+      } :: Source (AXI4_WFlit data_bytes wuser_bits)
 
 -- | Flatten 'Sink's of 'WFlit's for AXI4 compliant interface
 instance {-# OVERLAPPING #-}
-  Interface (Sink (AXI4_WFlit data_bytes wuser_bits)) where
-  toIfc snk = error "TODO"
-  fromIfc ifc = error "TODO"
+  (KnownNat data_bytes, KnownNat wuser_bits)
+  => Interface (Sink (AXI4_WFlit data_bytes wuser_bits)) where
+
+  toIfc snk = toPorts
+    (portName "wready", snk.canPut)
+    ( portMethodEn "" "wvalid" [ "wdata", "wstrb", "wlast", "wuser" ]
+    , \wdata wstrb wlast wuser -> when snk.canPut do snk.put AXI4_WFlit{..} )
+
+  fromIfc ifc =
+    fromPorts ifc \canPutVal putAct ->
+      Sink {
+        canPut = canPutVal
+      , put = \(f :: AXI4_WFlit data_bytes wuser_bits) ->
+                putAct f.wdata f.wstrb f.wlast f.wuser
+      }
 
 -- B channel (write response)
 --------------------------------------------------------------------------------
@@ -129,24 +146,41 @@ data AXI4_BFlit id_bits buser_bits =
 
 -- | Flatten 'Source's of 'BFlit's for AXI4 compliant interface
 instance {-# OVERLAPPING #-}
-  Interface (Source (AXI4_BFlit id_bits buser_bits)) where
-  toIfc src = toPorts ("bvalid", src.canPeek)
-                      ("bready", when src.canPeek do src.consume)
-                      ("bid", src.peek.bid)
-                      ("bresp", src.peek.bresp)
-                      ("buser", src.peek.buser)
-  fromIfc ifc = fromPorts ifc \bvalid bready bid bresp buser ->
-                  Source {
-                    canPeek = bvalid
-                  , consume = bready
-                  , peek = AXI4_BFlit {..}
-                  }
+  (KnownNat id_bits, KnownNat buser_bits)
+  => Interface (Source (AXI4_BFlit id_bits buser_bits)) where
+
+  toIfc src = toPorts
+    (portName "bvalid",           src.canPeek)
+    (portMethodEn "bready" "" [], when src.canPeek do src.consume)
+    (portName "bid",              src.peek.bid)
+    (portName "bresp",            src.peek.bresp)
+    (portName "buser",            src.peek.buser)
+
+  fromIfc ifc =
+    fromPorts ifc \canPeekVal consumeAct bid bresp buser ->
+      Source {
+        canPeek = canPeekVal
+      , consume = consumeAct
+      , peek = AXI4_BFlit {..}
+      } :: Source (AXI4_BFlit id_bits buser_bits)
 
 -- | Flatten 'Sink's of 'BFlit's for AXI4 compliant interface
 instance {-# OVERLAPPING #-}
-  Interface (Sink (AXI4_BFlit id_bits buser_bits)) where
-  toIfc snk = error "TODO"
-  fromIfc ifc = error "TODO"
+  (KnownNat id_bits, KnownNat buser_bits)
+  => Interface (Sink (AXI4_BFlit id_bits buser_bits)) where
+
+  toIfc snk = toPorts
+    (portName "bready", snk.canPut)
+    ( portMethodEn "" "bvalid" [ "bid", "bresp", "buser" ]
+    , \bid bresp buser -> when snk.canPut do snk.put AXI4_BFlit{..} )
+
+  fromIfc ifc =
+    fromPorts ifc \canPutVal putAct ->
+      Sink {
+        canPut = canPutVal
+      , put = \(f :: AXI4_BFlit id_bits buser_bits) ->
+                putAct f.bid f.bresp f.buser
+      }
 
 -- AR channel (read request address)
 --------------------------------------------------------------------------------
@@ -169,34 +203,56 @@ data AXI4_ARFlit id_bits addr_bits aruser_bits =
 
 -- | Flatten 'Source's of 'ARFlit's for AXI4 compliant interface
 instance {-# OVERLAPPING #-}
-  Interface (Source (AXI4_ARFlit id_bits addr_bits aruser_bits)) where
-  toIfc src = toPorts ("arvalid", src.canPeek)
-                      ("arready", when src.canPeek do src.consume)
-                      ("arid", src.peek.arid)
-                      ("araddr", src.peek.araddr)
-                      ("arlen", src.peek.arlen)
-                      ("arsize", src.peek.arsize)
-                      ("arburst", src.peek.arburst)
-                      ("arlock", src.peek.arlock)
-                      ("arcache", src.peek.arcache)
-                      ("arprot", src.peek.arprot)
-                      ("arqos", src.peek.arqos)
-                      ("arregion", src.peek.arregion)
-                      ("aruser", src.peek.aruser)
-  fromIfc ifc = fromPorts ifc \arvalid arready arid araddr arlen arsize
-                               arburst arlock arcache arprot arqos
-                               arregion aruser ->
-                  Source {
-                    canPeek = arvalid
-                  , consume = arready
-                  , peek = AXI4_ARFlit {..}
-                  }
+  (KnownNat id_bits, KnownNat addr_bits, KnownNat aruser_bits)
+  => Interface (Source (AXI4_ARFlit id_bits addr_bits aruser_bits)) where
+
+  toIfc src = toPorts
+    (portName "arvalid",           src.canPeek)
+    (portMethodEn "arready" "" [], when src.canPeek do src.consume)
+    (portName "arid",              src.peek.arid)
+    (portName "araddr",            src.peek.araddr)
+    (portName "arlen",             src.peek.arlen)
+    (portName "arsize",            src.peek.arsize)
+    (portName "arburst",           src.peek.arburst)
+    (portName "arlock",            src.peek.arlock)
+    (portName "arcache",           src.peek.arcache)
+    (portName "arprot",            src.peek.arprot)
+    (portName "arqos",             src.peek.arqos)
+    (portName "arregion",          src.peek.arregion)
+    (portName "aruser",            src.peek.aruser)
+
+  fromIfc ifc =
+    fromPorts ifc \canPeekVal consumeAct
+                   arid araddr arlen arsize arburst arlock
+                   arcache arprot arqos arregion aruser ->
+      Source {
+        canPeek = canPeekVal
+      , consume = consumeAct
+      , peek = AXI4_ARFlit {..}
+      } :: Source (AXI4_ARFlit id_bits addr_bits aruser_bits)
 
 -- | Flatten 'Sink's of 'ARFlit's for AXI4 compliant interface
 instance {-# OVERLAPPING #-}
-  Interface (Sink (AXI4_ARFlit id_bits addr_bits aruser_bits)) where
-  toIfc snk = error "TODO"
-  fromIfc ifc = error "TODO"
+  (KnownNat id_bits, KnownNat addr_bits, KnownNat aruser_bits)
+  => Interface (Sink (AXI4_ARFlit id_bits addr_bits aruser_bits)) where
+
+  toIfc snk = toPorts
+    (portName "arready", snk.canPut)
+    ( portMethodEn "" "arvalid"
+        [ "arid", "araddr", "arlen", "arsize", "arburst", "arlock"
+        , "arcache", "arprot", "arqos", "arregion", "aruser" ]
+    , \arid araddr arlen arsize arburst arlock
+       arcache arprot arqos arregion aruser ->
+         when snk.canPut do snk.put AXI4_ARFlit{..} )
+
+  fromIfc ifc =
+    fromPorts ifc \canPutVal putAct ->
+      Sink {
+        canPut = canPutVal
+      , put = \(f :: AXI4_ARFlit id_bits addr_bits aruser_bits) ->
+                putAct f.arid f.araddr f.arlen f.arsize f.arburst f.arlock
+                       f.arcache f.arprot f.arqos f.arregion f.aruser
+      }
 
 -- R channel (read response)
 --------------------------------------------------------------------------------
@@ -213,26 +269,44 @@ data AXI4_RFlit id_bits data_bytes ruser_bits =
 
 -- | Flatten 'Source's of 'RFlit's for AXI4 compliant interface
 instance {-# OVERLAPPING #-}
-  Interface (Source (AXI4_RFlit id_bits data_bytes ruser_bits)) where
-  toIfc src = toPorts ("rvalid", src.canPeek)
-                      ("rready", when src.canPeek do src.consume)
-                      ("rid", src.peek.rid)
-                      ("rdata", src.peek.rdata)
-                      ("rresp", src.peek.rresp)
-                      ("rlast", src.peek.rlast)
-                      ("ruser", src.peek.ruser)
-  fromIfc ifc = fromPorts ifc \rvalid rready rid rdata rresp rlast ruser ->
-                  Source {
-                    canPeek = rvalid
-                  , consume = rready
-                  , peek = AXI4_RFlit {..}
-                  }
+  (KnownNat id_bits, KnownNat data_bytes, KnownNat ruser_bits)
+  => Interface (Source (AXI4_RFlit id_bits data_bytes ruser_bits)) where
+
+  toIfc src = toPorts
+    (portName "rvalid",           src.canPeek)
+    (portMethodEn "rready" "" [], when src.canPeek do src.consume)
+    (portName "rid",              src.peek.rid)
+    (portName "rdata",            src.peek.rdata)
+    (portName "rresp",            src.peek.rresp)
+    (portName "rlast",            src.peek.rlast)
+    (portName "ruser",            src.peek.ruser)
+
+  fromIfc ifc =
+    fromPorts ifc \canPeekVal consumeAct rid rdata rresp rlast ruser ->
+      Source {
+        canPeek = canPeekVal
+      , consume = consumeAct
+      , peek = AXI4_RFlit {..}
+      } :: Source (AXI4_RFlit id_bits data_bytes ruser_bits)
 
 -- | Flatten 'Sink's of 'RFlit's for AXI4 compliant interface
 instance {-# OVERLAPPING #-}
-  Interface (Sink (AXI4_RFlit id_bits data_bytes ruser_bits)) where
-  toIfc snk = error "TODO"
-  fromIfc ifc = error "TODO"
+  (KnownNat id_bits, KnownNat data_bytes, KnownNat ruser_bits)
+  => Interface (Sink (AXI4_RFlit id_bits data_bytes ruser_bits)) where
+
+  toIfc snk = toPorts
+    (portName "rready", snk.canPut)
+    ( portMethodEn "" "rvalid" [ "rid", "rdata", "rresp", "rlast", "ruser" ]
+    , \rid rdata rresp rlast ruser ->
+         when snk.canPut do snk.put AXI4_RFlit{..} )
+
+  fromIfc ifc =
+    fromPorts ifc \canPutVal putAct ->
+      Sink {
+        canPut = canPutVal
+      , put = \(f :: AXI4_RFlit id_bits data_bytes ruser_bits) ->
+                putAct f.rid f.rdata f.rresp f.rlast f.ruser
+      }
 
 -- AXI4 Manager / Subordinates
 --------------------------------------------------------------------------------
