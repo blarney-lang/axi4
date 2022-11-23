@@ -77,8 +77,8 @@ instance {-# OVERLAPPING #-}
     fromPorts ifc \awready bigPut ->
       Sink {
         canPut = awready
-      , put f = bigPut f.awid f.awaddr f.awlen f.awsize f.awburst f.awlock
-                       f.awcache f.awprot f.awqos f.awregion f.awuser
+      , put = \f -> bigPut f.awid f.awaddr f.awlen f.awsize f.awburst f.awlock
+                           f.awcache f.awprot f.awqos f.awregion f.awuser
       }
   
 
