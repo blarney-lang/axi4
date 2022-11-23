@@ -3,6 +3,15 @@
 {-# LANGUAGE RecordWildCards #-}
 
 module Blarney.AXI4.Types (
+  AXI4_AWFlit (..)
+, AXI4_WFlit (..)
+, AXI4_BFlit (..)
+, AXI4_ARFlit (..)
+, AXI4_RFlit (..)
+, AXI4_Params (..)
+, AXI4_Manager (..)
+, AXI4_Subordinate (..)
+, AXI4_Shim (..)
 ) where
 
 import Blarney
