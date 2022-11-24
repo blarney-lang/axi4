@@ -66,7 +66,7 @@ instance {-# OVERLAPPING #-}
         canPeek = canPeekVal
       , consume = consumeAct
       , peek = AXI4_AWFlit {..}
-      } :: Source (AXI4_AWFlit id_bits addr_bits awuser_bits)
+      }
 
 -- | Flatten 'Sink's of 'AWFlit's for AXI4 compliant interface
 instance {-# OVERLAPPING #-}
@@ -86,9 +86,8 @@ instance {-# OVERLAPPING #-}
     fromPorts ifc \canPutVal putAct ->
       Sink {
         canPut = canPutVal
-      , put = \(f :: AXI4_AWFlit id_bits addr_bits awuser_bits) ->
-                putAct f.awid f.awaddr f.awlen f.awsize f.awburst f.awlock
-                       f.awcache f.awprot f.awqos f.awregion f.awuser
+      , put = \f -> putAct f.awid f.awaddr f.awlen f.awsize f.awburst f.awlock
+                           f.awcache f.awprot f.awqos f.awregion f.awuser
       }
 
 -- W channel (write request data)
@@ -122,7 +121,7 @@ instance {-# OVERLAPPING #-}
         canPeek = canPeekVal
       , consume = consumeAct
       , peek = AXI4_WFlit {..}
-      } :: Source (AXI4_WFlit data_bytes wuser_bits)
+      }
 
 -- | Flatten 'Sink's of 'WFlit's for AXI4 compliant interface
 instance {-# OVERLAPPING #-}
@@ -138,8 +137,7 @@ instance {-# OVERLAPPING #-}
     fromPorts ifc \canPutVal putAct ->
       Sink {
         canPut = canPutVal
-      , put = \(f :: AXI4_WFlit data_bytes wuser_bits) ->
-                putAct f.wdata f.wstrb f.wlast f.wuser
+      , put = \f -> putAct f.wdata f.wstrb f.wlast f.wuser
       }
 
 -- B channel (write response)
@@ -171,7 +169,7 @@ instance {-# OVERLAPPING #-}
         canPeek = canPeekVal
       , consume = consumeAct
       , peek = AXI4_BFlit {..}
-      } :: Source (AXI4_BFlit id_bits buser_bits)
+      }
 
 -- | Flatten 'Sink's of 'BFlit's for AXI4 compliant interface
 instance {-# OVERLAPPING #-}
@@ -187,8 +185,7 @@ instance {-# OVERLAPPING #-}
     fromPorts ifc \canPutVal putAct ->
       Sink {
         canPut = canPutVal
-      , put = \(f :: AXI4_BFlit id_bits buser_bits) ->
-                putAct f.bid f.bresp f.buser
+      , put = \f -> putAct f.bid f.bresp f.buser
       }
 
 -- AR channel (read request address)
@@ -238,7 +235,7 @@ instance {-# OVERLAPPING #-}
         canPeek = canPeekVal
       , consume = consumeAct
       , peek = AXI4_ARFlit {..}
-      } :: Source (AXI4_ARFlit id_bits addr_bits aruser_bits)
+      }
 
 -- | Flatten 'Sink's of 'ARFlit's for AXI4 compliant interface
 instance {-# OVERLAPPING #-}
@@ -258,9 +255,8 @@ instance {-# OVERLAPPING #-}
     fromPorts ifc \canPutVal putAct ->
       Sink {
         canPut = canPutVal
-      , put = \(f :: AXI4_ARFlit id_bits addr_bits aruser_bits) ->
-                putAct f.arid f.araddr f.arlen f.arsize f.arburst f.arlock
-                       f.arcache f.arprot f.arqos f.arregion f.aruser
+      , put = \f -> putAct f.arid f.araddr f.arlen f.arsize f.arburst f.arlock
+                           f.arcache f.arprot f.arqos f.arregion f.aruser
       }
 
 -- R channel (read response)
@@ -296,7 +292,7 @@ instance {-# OVERLAPPING #-}
         canPeek = canPeekVal
       , consume = consumeAct
       , peek = AXI4_RFlit {..}
-      } :: Source (AXI4_RFlit id_bits data_bytes ruser_bits)
+      }
 
 -- | Flatten 'Sink's of 'RFlit's for AXI4 compliant interface
 instance {-# OVERLAPPING #-}
@@ -313,8 +309,7 @@ instance {-# OVERLAPPING #-}
     fromPorts ifc \canPutVal putAct ->
       Sink {
         canPut = canPutVal
-      , put = \(f :: AXI4_RFlit id_bits data_bytes ruser_bits) ->
-                putAct f.rid f.rdata f.rresp f.rlast f.ruser
+      , put = \f -> putAct f.rid f.rdata f.rresp f.rlast f.ruser
       }
 
 -- AXI4 Manager / Subordinates
