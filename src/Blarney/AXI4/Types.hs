@@ -12,6 +12,15 @@ module Blarney.AXI4.Types (
 , AXI4_Manager (..)
 , AXI4_Subordinate (..)
 , AXI4_Shim (..)
+, IdBits
+, AddrBits
+, DataBytes
+, AWUserBits
+, WUserBits
+, BUserBits
+, ARUserBits
+, RUserBits
+, KnownNat_AXI4_Params
 ) where
 
 import Blarney
@@ -317,21 +326,50 @@ instance {-# OVERLAPPING #-}
 
 -- | AXI4 parameter container
 data AXI4_Params -- | number of bits for the AXI4 ID fiels
-                 id_bits
+                 (id_bits :: Nat)
                  -- | number of bits for the AXI4 address
-                 addr_bits
+                 (addr_bits :: Nat)
                  -- | number of *bytes* for the AXI4 data
-                 data_bytes
+                 (data_bytes :: Nat)
                  -- | number of buts for the AW user field
-                 awuser_bits
+                 (awuser_bits :: Nat)
                  -- | number of buts for the W user field
-                 wuser_bits
+                 (wuser_bits :: Nat)
                  -- | number of buts for the B user field
-                 buser_bits
+                 (buser_bits :: Nat)
                  -- | number of buts for the AR user field
-                 aruser_bits
+                 (aruser_bits :: Nat)
                  -- | number of buts for the R user field
-                 ruser_bits
+                 (ruser_bits :: Nat)
+
+-- | Select 'id_bits' field of 'AXI4_Params'
+type IdBits (params :: AXI4_Params id a d awu wu bu aru ru) = id
+
+-- | Select 'addr_bits' field of 'AXI4_Params'
+type AddrBits (params :: AXI4_Params id a d awu wu bu aru ru) = a
+
+-- | Select 'data_bytes' field of 'AXI4_Params'
+type DataBytes (params :: AXI4_Params id a d awu wu bu aru ru) = d
+
+-- | Select 'awuser_bits' field of 'AXI4_Params'
+type AWUserBits (params :: AXI4_Params id a d awu wu bu aru ru) = awu
+
+-- | Select 'wuser_bits' field of 'AXI4_Params'
+type WUserBits (params :: AXI4_Params id a d awu wu bu aru ru) = wu
+
+-- | Select 'buser_bits' field of 'AXI4_Params'
+type BUserBits (params :: AXI4_Params id a d awu wu bu aru ru) = bu
+
+-- | Select 'aruser_bits' field of 'AXI4_Params'
+type ARUserBits (params :: AXI4_Params id a d awu wu bu aru ru) = aru
+
+-- | Select 'ruser_bits' field of 'AXI4_Params'
+type RUserBits (params :: AXI4_Params id a d awu wu bu aru ru) = ru
+
+-- | Constraint synonym for 'KnownNat' over fields of 'AXI4_Params'
+type KnownNat_AXI4_Params (params :: AXI4_Params id a d awu wu bu aru ru) =
+  (KnownNat id, KnownNat a, KnownNat d, KnownNat awu,
+   KnownNat wu, KnownNat bu, KnownNat aru, KnownNat ru)
 
 -- | AXI4 manager
 data AXI4_Manager (params :: AXI4_Params id_bits addr_bits data_bytes

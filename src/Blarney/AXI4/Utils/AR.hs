@@ -1,6 +1,7 @@
 module Blarney.AXI4.Utils.AR (
 ) where
 
+import Blarney
 import Blarney.AXI4.Types
 
 -- map over flit type

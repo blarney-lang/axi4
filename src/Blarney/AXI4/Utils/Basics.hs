@@ -48,7 +48,7 @@ mkAXI4BufferShim_Core mkAWBuff mkWBuff mkBBuff mkARBuff mkRBuff = do
                                                     , ar = toSink arbuff
                                                     ,  r = toSource rbuff } }
 
-mkAXI4BufferShimFF :: Module (AXI4_Shim params params)
+mkAXI4BufferShimFF :: _ => Module (AXI4_Shim params params)
 mkAXI4BufferShimFF = mkAXI4BufferShim_Core makeQueue
                                            makeQueue
                                            makeQueue
