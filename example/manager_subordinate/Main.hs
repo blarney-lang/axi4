@@ -1,3 +1,11 @@
+{-# LANGUAGE PolyKinds             #-}
+{-# LANGUAGE DataKinds             #-}
+{-# LANGUAGE KindSignatures        #-}
+{-# LANGUAGE BlockArguments        #-}
+{-# LANGUAGE TypeApplications      #-}
+{-# LANGUAGE OverloadedRecordDot   #-}
+{-# LANGUAGE DuplicateRecordFields #-}
+
 import Blarney
 import Blarney.AXI4
 import Blarney.SourceSink
