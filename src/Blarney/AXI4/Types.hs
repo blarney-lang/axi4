@@ -1,6 +1,13 @@
-{-# LANGUAGE DataKinds       #-}
-{-# LANGUAGE PolyKinds       #-}
-{-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE DataKinds             #-}
+{-# LANGUAGE PolyKinds             #-}
+{-# LANGUAGE DeriveGeneric         #-}
+{-# LANGUAGE BlockArguments        #-}
+{-# LANGUAGE DeriveAnyClass        #-}
+{-# LANGUAGE RecordWildCards       #-}
+{-# LANGUAGE ConstraintKinds       #-}
+{-# LANGUAGE FlexibleInstances     #-}
+{-# LANGUAGE OverloadedRecordDot   #-}
+{-# LANGUAGE DuplicateRecordFields #-}
 
 module Blarney.AXI4.Types (
   AXI4_AWFlit (..)

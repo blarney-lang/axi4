@@ -1,5 +1,10 @@
-{-# LANGUAGE DataKinds #-}
-{-# LANGUAGE PolyKinds #-}
+{-# LANGUAGE DataKinds             #-}
+{-# LANGUAGE PolyKinds             #-}
+{-# LANGUAGE TypeFamilies          #-}
+{-# LANGUAGE PartialTypeSignatures #-}
+{-# LANGUAGE DuplicateRecordFields #-}
+
+{-# OPTIONS_GHC -Wno-partial-type-signatures #-}
 
 module Blarney.AXI4.Utils.Basics (
   mkAXI4BufferShimFF

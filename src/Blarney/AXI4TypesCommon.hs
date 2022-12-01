@@ -1,3 +1,9 @@
+{-# LANGUAGE DataKinds                  #-}
+{-# LANGUAGE DeriveGeneric              #-}
+{-# LANGUAGE BinaryLiterals             #-}
+{-# LANGUAGE UndecidableInstances       #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+
 module Blarney.AXI4TypesCommon (
   AXI4_Len
 , AXI4_Size
