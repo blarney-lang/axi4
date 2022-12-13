@@ -1,0 +1,13 @@
+cabal-version:      2.4
+name:               blarney-axi4
+version:            0.1.0.0
+
+library
+  hs-source-dirs: src
+  build-depends: base, blarney
+  exposed-modules: Blarney.AXI4
+  other-modules: Blarney.AXI4.Types
+                 Blarney.AXI4.Utils
+                 Blarney.AXI4.Utils.Basics
+                 Blarney.AXI4TypesCommon
+  default-language: GHC2021
