@@ -8,15 +8,17 @@
 
 import Blarney
 import Blarney.AXI4
+import Blarney.Queue
 import Blarney.SourceSink
+import Blarney.Connectable
 
---------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
 
-mkTestManager :: KnownNat_AXI4_Params params
+makeTestManager :: KnownNat_AXI4_Params params
               => Module (AXI4_Manager params)
-mkTestManager = do
+makeTestManager = do
   -- declare a shim to implement the interface in a simple manner
-  shim <- mkAXI4BufferShimFF
+  shim <- mkAXI4BufferShim (makePipelineQueue 1)
   -- use the subordinate side of the shim internally
   always do
     -- typical write request send
@@ -35,13 +37,13 @@ mkTestManager = do
   -- return the manager side of the shim as the external interface
   return shim.manager
 
---------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
 
-mkTestSubordinate :: KnownNat_AXI4_Params params
+makeTestSubordinate :: KnownNat_AXI4_Params params
                   => Module (AXI4_Subordinate params)
-mkTestSubordinate = do
+makeTestSubordinate = do
   -- declare a shim to implement the interface in a simple manner
-  shim <- mkAXI4BufferShimFF
+  shim <- mkAXI4BufferShim (makePipelineQueue 1)
   -- use the manager side of the shim internally
   always do
     -- typical write request receive
@@ -64,12 +66,11 @@ mkTestSubordinate = do
 
 type Test_AXI4_Params = AXI4_Params 2 32 8 0 0 0 0 0
 
---testBench :: Module ()
-testBench =
-  makeBoundary "Mgr" (mkTestManager @(_ :: Test_AXI4_Params))
-  --mgr <- makeBoundary "Mgr" mkTestManager
-  --sub <- makeBoundary "Sub" mkTestSubordinate
-  --mkConnection mgr sub
+testBench :: Module ()
+testBench = do
+  man <- makeBoundary "Man" (makeTestManager @Test_AXI4_Params)
+  sub <- makeBoundary "Sub" (makeTestSubordinate @Test_AXI4_Params)
+  makeConnection man sub
 
 --------------------------------------------------------------------------------
 

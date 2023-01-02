@@ -1,42 +1,20 @@
-{-# LANGUAGE DataKinds             #-}
-{-# LANGUAGE PolyKinds             #-}
-{-# LANGUAGE DeriveGeneric         #-}
-{-# LANGUAGE BlockArguments        #-}
-{-# LANGUAGE DeriveAnyClass        #-}
-{-# LANGUAGE RecordWildCards       #-}
-{-# LANGUAGE ConstraintKinds       #-}
-{-# LANGUAGE FlexibleInstances     #-}
-{-# LANGUAGE OverloadedRecordDot   #-}
-{-# LANGUAGE DuplicateRecordFields #-}
+{-# LANGUAGE UndecidableInstances #-}
 
-module Blarney.AXI4.Types (
+module Blarney.AXI4.Flits (
   AXI4_AWFlit (..)
 , AXI4_WFlit (..)
 , AXI4_BFlit (..)
 , AXI4_ARFlit (..)
 , AXI4_RFlit (..)
-, AXI4_Params (..)
-, AXI4_Manager (..)
-, AXI4_Subordinate (..)
-, AXI4_Shim (..)
-, IdBits
-, AddrBits
-, DataBytes
-, AWUserBits
-, WUserBits
-, BUserBits
-, ARUserBits
-, RUserBits
-, KnownNat_AXI4_Params
 ) where
 
 import Blarney
 import Blarney.Vector
 import Blarney.SourceSink
-import Blarney.AXI4TypesCommon
+import Blarney.AXI4.Fields
 
--- AW channel (write request address)
---------------------------------------------------------------------------------
+-- AXI4 flit types
+------------------
 
 -- | AXI4 "AW" write address channel
 data AXI4_AWFlit id_bits addr_bits awuser_bits =
@@ -53,6 +31,52 @@ data AXI4_AWFlit id_bits addr_bits awuser_bits =
   , awregion :: AXI4_Region
   , awuser   :: Bit awuser_bits
   } deriving (Generic, Bits)
+
+-- | AXI4 "W" write data channel
+data AXI4_WFlit data_bytes wuser_bits =
+  AXI4_WFlit {
+    wdata :: Vec data_bytes (Bit 8)
+  , wstrb :: Bit data_bytes
+  , wlast :: Bit 1
+  , wuser :: Bit wuser_bits
+  } deriving (Generic, Bits)
+
+-- | AXI4 "B" write response channel
+data AXI4_BFlit id_bits buser_bits =
+  AXI4_BFlit {
+    bid   :: Bit id_bits
+  , bresp :: AXI4_Resp
+  , buser :: Bit buser_bits
+  } deriving (Generic, Bits)
+
+-- | AXI4 "AR" read address channel
+data AXI4_ARFlit id_bits addr_bits aruser_bits =
+  AXI4_ARFlit {
+    arid     :: Bit id_bits
+  , araddr   :: Bit addr_bits
+  , arlen    :: AXI4_Len
+  , arsize   :: AXI4_Size
+  , arburst  :: AXI4_Burst
+  , arlock   :: AXI4_Lock
+  , arcache  :: AXI4_Cache
+  , arprot   :: AXI4_Prot
+  , arqos    :: AXI4_QoS
+  , arregion :: AXI4_Region
+  , aruser   :: Bit aruser_bits
+  } deriving (Generic, Bits)
+
+-- | AXI4 "R" read response channel
+data AXI4_RFlit id_bits data_bytes ruser_bits =
+  AXI4_RFlit {
+    rid   :: Bit id_bits
+  , rdata :: Vec data_bytes (Bit 8)
+  , rresp :: AXI4_Resp
+  , rlast :: Bit 1
+  , ruser :: Bit ruser_bits
+  } deriving (Generic, Bits)
+
+-- Interface instances for sources/sinks of AXI flits
+-----------------------------------------------------
 
 -- | Flatten 'Source's of 'AWFlit's for AXI4 compliant interface
 instance {-# OVERLAPPING #-}
@@ -106,27 +130,15 @@ instance {-# OVERLAPPING #-}
                            f.awcache f.awprot f.awqos f.awregion f.awuser
       }
 
--- W channel (write request data)
---------------------------------------------------------------------------------
-
--- | AXI4 "W" write data channel
-data AXI4_WFlit data_bytes wuser_bits =
-  AXI4_WFlit {
-    wdata :: Vec data_bytes (Bit 8)
-  , wstrb :: Bit data_bytes
-  , wlast :: Bit 1
-  , wuser :: Bit wuser_bits
-  } deriving (Generic, Bits)
-
 -- | Flatten 'Source's of 'WFlit's for AXI4 compliant interface
 instance {-# OVERLAPPING #-}
-  (KnownNat data_bytes, KnownNat wuser_bits)
+  (KnownNat data_bytes, KnownNat (data_bytes*8), KnownNat wuser_bits)
   => Interface (Source (AXI4_WFlit data_bytes wuser_bits)) where
 
   toIfc src = toPorts
     (portName "wvalid",           src.canPeek)
     (portMethodEn "wready" "" [], when src.canPeek do src.consume)
-    (portName "wdata",            src.peek.wdata)
+    (portName "wdata",            pack src.peek.wdata)
     (portName "wstrb",            src.peek.wstrb)
     (portName "wlast",            src.peek.wlast)
     (portName "wuser",            src.peek.wuser)
@@ -136,36 +148,26 @@ instance {-# OVERLAPPING #-}
       Source {
         canPeek = canPeekVal
       , consume = consumeAct
-      , peek = AXI4_WFlit {..}
+      , peek = AXI4_WFlit { wdata = unpack wdata, .. }
       }
 
 -- | Flatten 'Sink's of 'WFlit's for AXI4 compliant interface
 instance {-# OVERLAPPING #-}
-  (KnownNat data_bytes, KnownNat wuser_bits)
+  (KnownNat data_bytes, KnownNat (data_bytes*8), KnownNat wuser_bits)
   => Interface (Sink (AXI4_WFlit data_bytes wuser_bits)) where
 
   toIfc snk = toPorts
     (portName "wready", snk.canPut)
     ( portMethodEn "" "wvalid" [ "wdata", "wstrb", "wlast", "wuser" ]
-    , \wdata wstrb wlast wuser -> when snk.canPut do snk.put AXI4_WFlit{..} )
+    , \wdata wstrb wlast wuser ->
+        when snk.canPut do snk.put AXI4_WFlit{ wdata = unpack wdata, ..} )
 
   fromIfc ifc =
     fromPorts ifc \canPutVal putAct ->
       Sink {
         canPut = canPutVal
-      , put = \f -> putAct f.wdata f.wstrb f.wlast f.wuser
+      , put = \f -> putAct (pack f.wdata) f.wstrb f.wlast f.wuser
       }
-
--- B channel (write response)
---------------------------------------------------------------------------------
-
--- | AXI4 "B" write response channel
-data AXI4_BFlit id_bits buser_bits =
-  AXI4_BFlit {
-    bid   :: Bit id_bits
-  , bresp :: AXI4_Resp
-  , buser :: Bit buser_bits
-  } deriving (Generic, Bits)
 
 -- | Flatten 'Source's of 'BFlit's for AXI4 compliant interface
 instance {-# OVERLAPPING #-}
@@ -203,25 +205,6 @@ instance {-# OVERLAPPING #-}
         canPut = canPutVal
       , put = \f -> putAct f.bid f.bresp f.buser
       }
-
--- AR channel (read request address)
---------------------------------------------------------------------------------
-
--- | AXI4 "AR" read address channel
-data AXI4_ARFlit id_bits addr_bits aruser_bits =
-  AXI4_ARFlit {
-    arid     :: Bit id_bits
-  , araddr   :: Bit addr_bits
-  , arlen    :: AXI4_Len
-  , arsize   :: AXI4_Size
-  , arburst  :: AXI4_Burst
-  , arlock   :: AXI4_Lock
-  , arcache  :: AXI4_Cache
-  , arprot   :: AXI4_Prot
-  , arqos    :: AXI4_QoS
-  , arregion :: AXI4_Region
-  , aruser   :: Bit aruser_bits
-  } deriving (Generic, Bits)
 
 -- | Flatten 'Source's of 'ARFlit's for AXI4 compliant interface
 instance {-# OVERLAPPING #-}
@@ -275,19 +258,6 @@ instance {-# OVERLAPPING #-}
                            f.arcache f.arprot f.arqos f.arregion f.aruser
       }
 
--- R channel (read response)
---------------------------------------------------------------------------------
-
--- | AXI4 "R" read response channel
-data AXI4_RFlit id_bits data_bytes ruser_bits =
-  AXI4_RFlit {
-    rid   :: Bit id_bits
-  , rdata :: Vec data_bytes (Bit 8)
-  , rresp :: AXI4_Resp
-  , rlast :: Bit 1
-  , ruser :: Bit ruser_bits
-  } deriving (Generic, Bits)
-
 -- | Flatten 'Source's of 'RFlit's for AXI4 compliant interface
 instance {-# OVERLAPPING #-}
   (KnownNat id_bits, KnownNat data_bytes, KnownNat ruser_bits)
@@ -327,84 +297,3 @@ instance {-# OVERLAPPING #-}
         canPut = canPutVal
       , put = \f -> putAct f.rid f.rdata f.rresp f.rlast f.ruser
       }
-
--- AXI4 Manager / Subordinates
---------------------------------------------------------------------------------
-
--- | AXI4 parameter container
-data AXI4_Params -- | number of bits for the AXI4 ID fiels
-                 (id_bits :: Nat)
-                 -- | number of bits for the AXI4 address
-                 (addr_bits :: Nat)
-                 -- | number of *bytes* for the AXI4 data
-                 (data_bytes :: Nat)
-                 -- | number of buts for the AW user field
-                 (awuser_bits :: Nat)
-                 -- | number of buts for the W user field
-                 (wuser_bits :: Nat)
-                 -- | number of buts for the B user field
-                 (buser_bits :: Nat)
-                 -- | number of buts for the AR user field
-                 (aruser_bits :: Nat)
-                 -- | number of buts for the R user field
-                 (ruser_bits :: Nat)
-
--- | Select 'id_bits' field of 'AXI4_Params'
-type IdBits (params :: AXI4_Params id a d awu wu bu aru ru) = id
-
--- | Select 'addr_bits' field of 'AXI4_Params'
-type AddrBits (params :: AXI4_Params id a d awu wu bu aru ru) = a
-
--- | Select 'data_bytes' field of 'AXI4_Params'
-type DataBytes (params :: AXI4_Params id a d awu wu bu aru ru) = d
-
--- | Select 'awuser_bits' field of 'AXI4_Params'
-type AWUserBits (params :: AXI4_Params id a d awu wu bu aru ru) = awu
-
--- | Select 'wuser_bits' field of 'AXI4_Params'
-type WUserBits (params :: AXI4_Params id a d awu wu bu aru ru) = wu
-
--- | Select 'buser_bits' field of 'AXI4_Params'
-type BUserBits (params :: AXI4_Params id a d awu wu bu aru ru) = bu
-
--- | Select 'aruser_bits' field of 'AXI4_Params'
-type ARUserBits (params :: AXI4_Params id a d awu wu bu aru ru) = aru
-
--- | Select 'ruser_bits' field of 'AXI4_Params'
-type RUserBits (params :: AXI4_Params id a d awu wu bu aru ru) = ru
-
--- | Constraint synonym for 'KnownNat' over fields of 'AXI4_Params'
-type KnownNat_AXI4_Params (params :: AXI4_Params id a d awu wu bu aru ru) =
-  (KnownNat id, KnownNat a, KnownNat d, KnownNat awu,
-   KnownNat wu, KnownNat bu, KnownNat aru, KnownNat ru)
-
--- | AXI4 manager
-data AXI4_Manager (params :: AXI4_Params id_bits addr_bits data_bytes
-                                         awuser_bits wuser_bits buser_bits
-                                         aruser_bits ruser_bits) =
-  AXI4_Manager {
-    aw :: Source (AXI4_AWFlit id_bits addr_bits awuser_bits)
-  , w  :: Source (AXI4_WFlit data_bytes wuser_bits)
-  , b  :: Sink   (AXI4_BFlit id_bits buser_bits)
-  , ar :: Source (AXI4_ARFlit id_bits addr_bits aruser_bits)
-  , r  :: Sink   (AXI4_RFlit id_bits data_bytes ruser_bits)
-  } deriving (Generic, Interface)
-
--- | AXI4 subordinate
-data AXI4_Subordinate (params :: AXI4_Params id_bits addr_bits data_bytes
-                                             awuser_bits wuser_bits buser_bits
-                                             aruser_bits ruser_bits) =
-  AXI4_Subordinate {
-    aw :: Sink   (AXI4_AWFlit id_bits addr_bits awuser_bits)
-  , w  :: Sink   (AXI4_WFlit data_bytes wuser_bits)
-  , b  :: Source (AXI4_BFlit id_bits buser_bits)
-  , ar :: Sink   (AXI4_ARFlit id_bits addr_bits aruser_bits)
-  , r  :: Source (AXI4_RFlit id_bits data_bytes ruser_bits)
-  } deriving (Generic, Interface)
-
--- | AXI4 shim
-data AXI4_Shim params_sub params_mgr =
-  AXI4_Shim {
-    subordinate :: AXI4_Subordinate params_sub
-  , manager     :: AXI4_Manager params_mgr
-  } deriving (Generic, Interface)
