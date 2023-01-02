@@ -1,24 +1,19 @@
-{-# LANGUAGE PolyKinds             #-}
-{-# LANGUAGE DataKinds             #-}
-{-# LANGUAGE KindSignatures        #-}
-{-# LANGUAGE BlockArguments        #-}
-{-# LANGUAGE TypeApplications      #-}
-{-# LANGUAGE OverloadedRecordDot   #-}
-{-# LANGUAGE DuplicateRecordFields #-}
-
+-- Blarney imports
 import Blarney
-import Blarney.AXI4
 import Blarney.Queue
 import Blarney.SourceSink
 import Blarney.Connectable
 
--------------------------------------------------------------------------------
+-- AXI4 imports
+import Blarney.AXI4
+import Blarney.AXI4.Utils.BufferShim
 
+-- Example manager
 makeTestManager :: KnownNat_AXI4_Params params
-              => Module (AXI4_Manager params)
+                => Module (AXI4_Manager params)
 makeTestManager = do
   -- declare a shim to implement the interface in a simple manner
-  shim <- mkAXI4BufferShim (makePipelineQueue 1)
+  shim <- makeAXI4BufferShim (makePipelineQueue 1)
   -- use the subordinate side of the shim internally
   always do
     -- typical write request send
@@ -37,13 +32,12 @@ makeTestManager = do
   -- return the manager side of the shim as the external interface
   return shim.manager
 
--------------------------------------------------------------------------------
-
+-- Example subordinate
 makeTestSubordinate :: KnownNat_AXI4_Params params
-                  => Module (AXI4_Subordinate params)
+                    => Module (AXI4_Subordinate params)
 makeTestSubordinate = do
   -- declare a shim to implement the interface in a simple manner
-  shim <- mkAXI4BufferShim (makePipelineQueue 1)
+  shim <- makeAXI4BufferShim (makePipelineQueue 1)
   -- use the manager side of the shim internally
   always do
     -- typical write request receive
@@ -62,18 +56,16 @@ makeTestSubordinate = do
   -- return the subordinate side of the shim as the external interface
   return shim.subordinate
 
---------------------------------------------------------------------------------
-
+-- Example AXI4 parameters
 type Test_AXI4_Params = AXI4_Params 2 32 8 0 0 0 0 0
 
+-- Simple test bench
 testBench :: Module ()
 testBench = do
   man <- makeBoundary "Man" (makeTestManager @Test_AXI4_Params)
   sub <- makeBoundary "Sub" (makeTestSubordinate @Test_AXI4_Params)
   makeConnection man sub
 
---------------------------------------------------------------------------------
-
 main :: IO ()
 main = do
-  writeVerilogModule testBench "testBench" "testBench-Verilog/"
+  writeVerilogModule testBench "ManSub" "ManSub-Verilog/"

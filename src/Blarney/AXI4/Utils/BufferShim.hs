@@ -1,6 +1,6 @@
-module Blarney.AXI4.Utils.Basics (
-  mkAXI4BufferShim_Core
-, mkAXI4BufferShim
+module Blarney.AXI4.Utils.BufferShim (
+  makeAXI4BufferShim_Core
+, makeAXI4BufferShim
 ) where
 
 import Blarney
@@ -10,7 +10,7 @@ import Blarney.AXI4.Flits
 import Blarney.AXI4.Interfaces
 
 -- | AXI4 buffer shim (core module)
-mkAXI4BufferShim_Core ::
+makeAXI4BufferShim_Core ::
   -- type aliases and constraints
   ( awflit ~ AXI4_AWFlit (IdWidth p) (AddrWidth p) (AWUserWidth p)
   , wflit  ~ AXI4_WFlit  (DataWidth p) (WUserWidth p)
@@ -26,32 +26,41 @@ mkAXI4BufferShim_Core ::
   => Module aw_buff -> Module w_buff -> Module b_buff
   -> Module ar_buff -> Module r_buff
   -> Module (AXI4_Shim p p)
-mkAXI4BufferShim_Core mkAWBuff mkWBuff mkBBuff mkARBuff mkRBuff = do
+makeAXI4BufferShim_Core mkAWBuff mkWBuff mkBBuff mkARBuff mkRBuff = do
   awbuff <- mkAWBuff
   wbuff  <- mkWBuff
   bbuff  <- mkBBuff
   arbuff <- mkARBuff
   rbuff  <- mkRBuff
-  return AXI4_Shim { manager = AXI4_Manager { aw = toSource awbuff
-                                            ,  w = toSource wbuff
-                                            ,  b = toSink bbuff
-                                            , ar = toSource arbuff
-                                            ,  r = toSink rbuff }
-                   , subordinate = AXI4_Subordinate { aw = toSink awbuff
-                                                    ,  w = toSink wbuff
-                                                    ,  b = toSource bbuff
-                                                    , ar = toSink arbuff
-                                                    ,  r = toSource rbuff } }
+  return
+    AXI4_Shim {
+      manager =
+        AXI4_Manager {
+          aw = toSource awbuff
+        , w  = toSource wbuff
+        , b  = toSink bbuff
+        , ar = toSource arbuff
+        , r  = toSink rbuff
+        }
+    , subordinate =
+        AXI4_Subordinate {
+          aw = toSink awbuff
+        , w  = toSink wbuff
+        , b  = toSource bbuff
+        , ar = toSink arbuff
+        , r  = toSource rbuff
+        }
+    }
 
 -- | AXI4 buffer shim
-mkAXI4BufferShim :: KnownNat_AXI4_Params p =>
+makeAXI4BufferShim :: KnownNat_AXI4_Params p =>
      -- | Type of buffer to use
      (forall a. Bits a => Module (Queue a))
      -- | Shim with buffer between each side
   -> Module (AXI4_Shim p p)
-mkAXI4BufferShim makeBuffer =
-  mkAXI4BufferShim_Core makeBuffer
-                        makeBuffer
-                        makeBuffer
-                        makeBuffer
-                        makeBuffer
+makeAXI4BufferShim makeBuffer =
+  makeAXI4BufferShim_Core makeBuffer
+                          makeBuffer
+                          makeBuffer
+                          makeBuffer
+                          makeBuffer

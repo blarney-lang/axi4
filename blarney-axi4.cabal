@@ -11,12 +11,11 @@ library
   hs-source-dirs: src
   exposed-modules:
     Blarney.AXI4
+    Blarney.AXI4.Utils.BufferShim
   other-modules:
     Blarney.AXI4.Flits
     Blarney.AXI4.Fields
     Blarney.AXI4.Interfaces
-    Blarney.AXI4.Utils
-    Blarney.AXI4.Utils.Basics
   build-depends:
       base
     , blarney
