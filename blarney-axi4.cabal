@@ -1,4 +1,4 @@
-cabal-version: 2.4
+cabal-version: 3.0
 name: blarney-axi4
 version: 0.1.0.0
 
@@ -7,18 +7,7 @@ flag enable-namer-plugin
   manual: True
   default: False
 
-library
-  hs-source-dirs: src
-  exposed-modules:
-    Blarney.AXI4
-    Blarney.AXI4.Utils.BufferShim
-  other-modules:
-    Blarney.AXI4.Flits
-    Blarney.AXI4.Fields
-    Blarney.AXI4.Interfaces
-  build-depends:
-      base
-    , blarney
+common blarney-axi4-opts
   default-language: GHC2021
   default-extensions:
     BlockArguments
@@ -43,3 +32,25 @@ library
       blarney-plugins-namer
     ghc-options:
       -fplugin BlarneyPlugins.Namer
+  build-depends:
+      base
+    , blarney
+
+library
+  import: blarney-axi4-opts
+  hs-source-dirs: src
+  exposed-modules:
+    Blarney.AXI4
+    Blarney.AXI4.Utils.BufferShim
+  other-modules:
+    Blarney.AXI4.Flits
+    Blarney.AXI4.Fields
+    Blarney.AXI4.Interfaces
+
+test-suite blarney-axi4-tests
+  import: blarney-axi4-opts
+  type: exitcode-stdio-1.0
+  main-is: Blarney/AXI4/Tests.hs
+  hs-source-dirs: tests
+  other-modules: Blarney.AXI4.Tests.PIO
+  build-depends: blarney-axi4
