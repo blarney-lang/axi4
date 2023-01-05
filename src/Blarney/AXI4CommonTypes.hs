@@ -1,4 +1,4 @@
-module Blarney.AXI4.Fields (
+module Blarney.AXI4CommonTypes (
   AXI4_Len
 , AXI4_Size
 , AXI4_Burst, burst_fixed, burst_incr, burst_wrap, burst_reserved

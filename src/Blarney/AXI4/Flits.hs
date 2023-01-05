@@ -11,7 +11,7 @@ module Blarney.AXI4.Flits (
 import Blarney
 import Blarney.Vector
 import Blarney.SourceSink
-import Blarney.AXI4.Fields
+import Blarney.AXI4CommonTypes
 
 -- AXI4 flit types
 ------------------

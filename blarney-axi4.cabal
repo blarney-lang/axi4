@@ -44,8 +44,8 @@ library
     Blarney.AXI4.Utils.BufferShim
   other-modules:
     Blarney.AXI4.Flits
-    Blarney.AXI4.Fields
     Blarney.AXI4.Interfaces
+    Blarney.AXI4CommonTypes
 
 test-suite blarney-axi4-tests
   import: blarney-axi4-opts

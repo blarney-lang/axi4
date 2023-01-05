@@ -25,7 +25,7 @@ import Blarney.Connectable
 
 -- AXI4 imports
 import Blarney.AXI4.Flits
-import Blarney.AXI4.Fields
+import Blarney.AXI4CommonTypes
 
 -- | AXI4 parameter container, primarily for use as a kind rather than a type
 data AXI4_Params_Container =
