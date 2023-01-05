@@ -12,6 +12,9 @@ import Blarney.Connectable
 import Blarney.AXI4
 import Blarney.AXI4.Utils.BufferShim
 
+-- Haskell imports
+import System.Exit
+
 -- A PIO (parallel I/O) is a memory-mapped register of a desired width
 type PIO addr_bits data_bytes =
   AXI4_Subordinate (AXI4_Params 0 addr_bits data_bytes 0 0 0 0 0)
@@ -175,6 +178,9 @@ makePIOTestBench = do
     action do
       finish
  
--- Cabal test
+-- Report test success via exit code
 test :: IO ()
-test = simulate makePIOTestBench
+test = do
+  output <- simulateCapture makePIOTestBench
+  when (lines output /= ["2", "3", "4", "5"]) do
+    die "Test failed: makePIOTestBench"
