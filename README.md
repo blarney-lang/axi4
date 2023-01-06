@@ -1,11 +1,11 @@
-# AXI4 in Blarney
+# An AXI4 library for Blarney
 
 This is a library for working with the AXI4 protocol in
 [Blarney](https://github.com/blarney-lang/blarney).  It will help you
 develop your own AXI4 components (managers, subordinates, and stream
-processors), along with the interconnect to needed to join them
-together to form large systems.  It is in the early stages of
-development.
+processors), interface with existing AXI4 components written in other
+languages, and provide interconnect to build systems comprising
+multiple components.  It is in the early stages of development.
 
 ## Usage
 
