@@ -16,16 +16,21 @@ import Blarney.AXI4.Utils.BufferShim
 import System.Exit
 
 -- A PIO (parallel I/O) is a memory-mapped register of a desired width
-type PIO addr_bits data_bytes =
-  AXI4_Subordinate (AXI4_Params 0 addr_bits data_bytes 0 0 0 0 0)
+data PIO params =
+  PIO {
+    axi :: AXI4_Subordinate params
+    -- ^ Memory-mapped AXI interface
+  , val :: V.Vec (2 ^ AddrWidth params) (Bit 8)
+    -- ^ Raw register value
+  }
 
-makePIO :: _ => Module (PIO addr_bits data_bytes)
+makePIO :: forall params. _ => Module (PIO params)
 makePIO = do
   -- Declare a shim to implement the interface in a simple manner
   shim <- makeAXI4BufferShim (makePipelineQueue 1)
 
   -- Data registers
-  dataRegs :: V.Vec (2^addr_bits) (Reg (Bit 8)) <-
+  dataRegs :: V.Vec (2 ^ AddrWidth params) (Reg (Bit 8)) <-
     V.replicateM (makeReg dontCare)
 
   -- Read-related registers
@@ -49,7 +54,7 @@ makePIO = do
       let awflit = shim.manager.aw.peek
       awid <== awflit.awid
       awaddr <== awflit.awaddr
-      awsize <== (1 :: Bit addr_bits) .<<. awflit.awsize
+      awsize <== (1 :: Bit (AddrWidth params)) .<<. awflit.awsize
       shim.manager.aw.consume
       write <== true
 
@@ -82,7 +87,7 @@ makePIO = do
     when (inv read.val .&&. shim.manager.ar.canPeek) do
       let arflit = shim.manager.ar.peek
       arcount <== arflit.arlen
-      arsize <== (1 :: Bit addr_bits) .<<. arflit.arsize
+      arsize <== (1 :: Bit (AddrWidth params)) .<<. arflit.arsize
       araddr <== arflit.araddr
       arid <== arflit.arid
       shim.manager.ar.consume
@@ -106,19 +111,22 @@ makePIO = do
       when (arcount.val .==. 0) do
         read <== false
 
-  -- Return the subordinate side of the shim as the external interface
-  return shim.subordinate
+  return
+    PIO {
+      axi = shim.subordinate
+    , val = V.map (.val) dataRegs
+    }
 
 makePIOTestBench :: Module ()
 makePIOTestBench = do
-  -- 64 bit PIO with 32-bit data bus
-  pio :: PIO 3 4 <- makePIO
+  -- 64-bit PIO with 32-bit data bus
+  pio :: PIO (AXI4_Params 0 3 4 0 0 0 0 0) <- makePIO
 
   runStmt do
     -- Issue write request for 6 bytes starting at address 1
-    wait pio.aw.canPut 
+    wait pio.axi.aw.canPut 
     action do
-      pio.aw.put
+      pio.axi.aw.put
         AXI4_AWFlit {
           awid     = dontCare
         , awaddr   = 1
@@ -135,9 +143,9 @@ makePIOTestBench = do
 
     -- Write 6 bytes
     forM_ [0..2] \i -> do
-      wait pio.w.canPut
+      wait pio.axi.w.canPut
       action do
-        pio.w.put
+        pio.axi.w.put
           AXI4_WFlit {
             wdata = V.fromList (map fromInteger [2*i, 2*i+1, 0, 0])
           , wstrb = fromBitList [1, 1, 0, 0]
@@ -146,14 +154,14 @@ makePIOTestBench = do
           }
 
     -- Wait for write response
-    wait pio.b.canPeek
+    wait pio.axi.b.canPeek
     action do
-      pio.b.consume
+      pio.axi.b.consume
 
     -- Issue read request for 4 bytes starting at address 3
-    wait pio.ar.canPut
+    wait pio.axi.ar.canPut
     action do
-      pio.ar.put
+      pio.axi.ar.put
         AXI4_ARFlit {
           arid     = dontCare
         , araddr   = 3
@@ -170,10 +178,10 @@ makePIOTestBench = do
 
     -- Read 4 bytes
     forM_ [0..3] \i -> do
-      wait pio.r.canPeek
+      wait pio.axi.r.canPeek
       action do
-        display (V.head pio.r.peek.rdata)
-        pio.r.consume
+        display (V.head pio.axi.r.peek.rdata)
+        pio.axi.r.consume
 
     action do
       finish
