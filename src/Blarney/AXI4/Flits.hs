@@ -260,14 +260,15 @@ instance {-# OVERLAPPING #-}
 
 -- | Flatten 'Source's of 'RFlit's for AXI4 compliant interface
 instance {-# OVERLAPPING #-}
-  (KnownNat id_bits, KnownNat data_bytes, KnownNat ruser_bits)
+  (KnownNat id_bits, KnownNat ruser_bits,
+     KnownNat data_bytes, KnownNat (data_bytes * 8))
   => Interface (Source (AXI4_RFlit id_bits data_bytes ruser_bits)) where
 
   toIfc src = toPorts
     (portName "rvalid",           src.canPeek)
     (portMethodEn "rready" "" [], when src.canPeek do src.consume)
     (portName "rid",              src.peek.rid)
-    (portName "rdata",            src.peek.rdata)
+    (portName "rdata",            pack src.peek.rdata)
     (portName "rresp",            src.peek.rresp)
     (portName "rlast",            src.peek.rlast)
     (portName "ruser",            src.peek.ruser)
@@ -277,7 +278,7 @@ instance {-# OVERLAPPING #-}
       Source {
         canPeek = canPeekVal
       , consume = consumeAct
-      , peek = AXI4_RFlit {..}
+      , peek = AXI4_RFlit { rdata = unpack rdata, .. }
       }
 
 -- | Flatten 'Sink's of 'RFlit's for AXI4 compliant interface
