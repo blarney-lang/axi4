@@ -37,14 +37,14 @@ Individual parameters can be selected from a type of kind
 `AXI4_Params_Container` using the following type families.
 
 ```haskell
-  IdWidth     (AXI4_Params id a d awu wu bu aru ru) = id
-  AddrWidth   (AXI4_Params id a d awu wu bu aru ru) = a
-  DataWidth   (AXI4_Params id a d awu wu bu aru ru) = d
-  AWUserWidth (AXI4_Params id a d awu wu bu aru ru) = awu
-  WUserWidth  (AXI4_Params id a d awu wu bu aru ru) = wu
-  BUserWidth  (AXI4_Params id a d awu wu bu aru ru) = bu
-  ARUserWidth (AXI4_Params id a d awu wu bu aru ru) = aru
-  RUserWidth  (AXI4_Params id a d awu wu bu aru ru) = ru
+IdWidth     (AXI4_Params id a d awu wu bu aru ru) = id
+AddrWidth   (AXI4_Params id a d awu wu bu aru ru) = a
+DataWidth   (AXI4_Params id a d awu wu bu aru ru) = d
+AWUserWidth (AXI4_Params id a d awu wu bu aru ru) = awu
+WUserWidth  (AXI4_Params id a d awu wu bu aru ru) = wu
+BUserWidth  (AXI4_Params id a d awu wu bu aru ru) = bu
+ARUserWidth (AXI4_Params id a d awu wu bu aru ru) = aru
+RUserWidth  (AXI4_Params id a d awu wu bu aru ru) = ru
 ```
 
 AXI4 managers, subordinates, and shims are then defined as collections
