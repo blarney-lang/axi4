@@ -22,15 +22,14 @@ AXI4 interface parameters shared by managers and subordinates are
 captured by the `AXI4_Params` type constructor of kind:
 
 ```haskell
-AXI4_Params
-  :: Nat     -- Id width (bits)
-  -> Nat     -- Address width (bits)
-  -> Nat     -- Data width (bytes)
-  -> Nat     -- AW user width (bits)
-  -> Nat     -- B user width (bits)
-  -> Nat     -- AR user width (bits)
-  -> Nat     -- R user width (bits)
-  -> AXI4_Params_Container
+AXI4_Params :: Nat     -- Id width (bits)
+            -> Nat     -- Address width (bits)
+            -> Nat     -- Data width (bytes)
+            -> Nat     -- AW user width (bits)
+            -> Nat     -- B user width (bits)
+            -> Nat     -- AR user width (bits)
+            -> Nat     -- R user width (bits)
+            -> AXI4_Params_Container
 ```
 
 Individual parameters can be selected from a type of kind
@@ -141,4 +140,17 @@ data AXI4_RFlit id_bits data_bytes ruser_bits =
   , rlast :: Bit 1
   , ruser :: Bit ruser_bits
   } deriving (Generic, Bits)
+```
+
+## Interconnect
+
+Managers and subordinates can be connected together using Blarney's
+overloaded `makeConnection` function from the `Connectable` class.
+
+```haskell
+instance Connectable (AXI4_Manager params)
+                     (AXI4_Subordinate params) where
+  makeConnection :: AXI4_Manager params
+                 -> AXI4_Subordinate params
+                 -> Module ()
 ```
