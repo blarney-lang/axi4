@@ -19,7 +19,7 @@ example of how to do this.
 ## Type overview
 
 AXI4 interface parameters shared by managers and subordinates are
-captured by the `AXI4_Params` type constructor of kind:
+captured by the `AXI4_Params` _type_ constructor:
 
 ```haskell
 AXI4_Params :: Nat     -- Id width (bits)
