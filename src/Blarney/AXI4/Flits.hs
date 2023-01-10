@@ -33,13 +33,13 @@ data AXI4_AWFlit id_bits addr_bits awuser_bits =
   } deriving (Generic, Bits)
 
 -- | AXI4 "W" write data channel
-data AXI4_WFlit data_bytes wuser_bits =
+data AXI4_WFlit log_data_bytes wuser_bits =
   AXI4_WFlit {
-    wdata :: Vec data_bytes (Bit 8)
-  , wstrb :: Bit data_bytes
+    wdata :: Vec (2^log_data_bytes) (Bit 8)
+  , wstrb :: Bit (2^log_data_bytes)
   , wlast :: Bit 1
   , wuser :: Bit wuser_bits
-  } deriving (Generic, Bits)
+  } deriving Generic
 
 -- | AXI4 "B" write response channel
 data AXI4_BFlit id_bits buser_bits =
@@ -66,21 +66,60 @@ data AXI4_ARFlit id_bits addr_bits aruser_bits =
   } deriving (Generic, Bits)
 
 -- | AXI4 "R" read response channel
-data AXI4_RFlit id_bits data_bytes ruser_bits =
+data AXI4_RFlit id_bits log_data_bytes ruser_bits =
   AXI4_RFlit {
     rid   :: Bit id_bits
-  , rdata :: Vec data_bytes (Bit 8)
+  , rdata :: Vec (2^log_data_bytes) (Bit 8)
   , rresp :: AXI4_Resp
   , rlast :: Bit 1
   , ruser :: Bit ruser_bits
-  } deriving (Generic, Bits)
+  } deriving Generic
+
+-- Constraint synonyms
+----------------------
+
+type KnownNat_AXI4_AWFlit id_bits addr_bits awuser_bits =
+  ( KnownNat id_bits
+  , KnownNat addr_bits
+  , KnownNat awuser_bits )
+
+type KnownNat_AXI4_WFlit log_data_bytes wuser_bits =
+  ( KnownNat log_data_bytes
+  , KnownNat (2^log_data_bytes)
+  , KnownNat ((2^log_data_bytes)*8)
+  , KnownNat wuser_bits )
+
+type KnownNat_AXI4_BFlit id_bits buser_bits =
+  ( KnownNat id_bits
+  , KnownNat buser_bits )
+
+type KnownNat_AXI4_ARFlit id_bits addr_bits aruser_bits =
+  ( KnownNat id_bits
+  , KnownNat addr_bits
+  , KnownNat aruser_bits )
+
+type KnownNat_AXI4_RFlit id_bits log_data_bytes ruser_bits =
+  ( KnownNat id_bits
+  , KnownNat log_data_bytes
+  , KnownNat (2^log_data_bytes)
+  , KnownNat ((2^log_data_bytes)*8)
+  , KnownNat ruser_bits )
+
+-- Bits instances for AXI flits
+-------------------------------
+
+instance KnownNat_AXI4_WFlit log_data_bytes wuser_bits =>
+  Bits (AXI4_WFlit log_data_bytes wuser_bits)
+
+instance KnownNat_AXI4_RFlit id_bits log_data_bytes ruser_bits =>
+  Bits (AXI4_RFlit id_bits log_data_bytes ruser_bits)
 
 -- Interface instances for sources/sinks of AXI flits
 -----------------------------------------------------
 
 -- | Flatten 'Source's of 'AWFlit's for AXI4 compliant interface
 instance {-# OVERLAPPING #-}
-  (KnownNat id_bits, KnownNat addr_bits, KnownNat awuser_bits)
+     KnownNat_AXI4_AWFlit id_bits addr_bits awuser_bits
   => Interface (Source (AXI4_AWFlit id_bits addr_bits awuser_bits)) where
 
   toIfc src = toPorts
@@ -110,7 +149,7 @@ instance {-# OVERLAPPING #-}
 
 -- | Flatten 'Sink's of 'AWFlit's for AXI4 compliant interface
 instance {-# OVERLAPPING #-}
-  (KnownNat id_bits, KnownNat addr_bits, KnownNat awuser_bits)
+     KnownNat_AXI4_AWFlit id_bits addr_bits awuser_bits
   => Interface (Sink (AXI4_AWFlit id_bits addr_bits awuser_bits)) where
 
   toIfc snk = toPorts
@@ -132,8 +171,8 @@ instance {-# OVERLAPPING #-}
 
 -- | Flatten 'Source's of 'WFlit's for AXI4 compliant interface
 instance {-# OVERLAPPING #-}
-  (KnownNat data_bytes, KnownNat (data_bytes*8), KnownNat wuser_bits)
-  => Interface (Source (AXI4_WFlit data_bytes wuser_bits)) where
+     KnownNat_AXI4_WFlit log_data_bytes wuser_bits
+  => Interface (Source (AXI4_WFlit log_data_bytes wuser_bits)) where
 
   toIfc src = toPorts
     (portName "wvalid",           src.canPeek)
@@ -153,8 +192,8 @@ instance {-# OVERLAPPING #-}
 
 -- | Flatten 'Sink's of 'WFlit's for AXI4 compliant interface
 instance {-# OVERLAPPING #-}
-  (KnownNat data_bytes, KnownNat (data_bytes*8), KnownNat wuser_bits)
-  => Interface (Sink (AXI4_WFlit data_bytes wuser_bits)) where
+     KnownNat_AXI4_WFlit log_data_bytes wuser_bits
+  => Interface (Sink (AXI4_WFlit log_data_bytes wuser_bits)) where
 
   toIfc snk = toPorts
     (portName "wready", snk.canPut)
@@ -171,7 +210,7 @@ instance {-# OVERLAPPING #-}
 
 -- | Flatten 'Source's of 'BFlit's for AXI4 compliant interface
 instance {-# OVERLAPPING #-}
-  (KnownNat id_bits, KnownNat buser_bits)
+     KnownNat_AXI4_BFlit id_bits buser_bits
   => Interface (Source (AXI4_BFlit id_bits buser_bits)) where
 
   toIfc src = toPorts
@@ -191,7 +230,7 @@ instance {-# OVERLAPPING #-}
 
 -- | Flatten 'Sink's of 'BFlit's for AXI4 compliant interface
 instance {-# OVERLAPPING #-}
-  (KnownNat id_bits, KnownNat buser_bits)
+     KnownNat_AXI4_BFlit id_bits buser_bits
   => Interface (Sink (AXI4_BFlit id_bits buser_bits)) where
 
   toIfc snk = toPorts
@@ -208,7 +247,7 @@ instance {-# OVERLAPPING #-}
 
 -- | Flatten 'Source's of 'ARFlit's for AXI4 compliant interface
 instance {-# OVERLAPPING #-}
-  (KnownNat id_bits, KnownNat addr_bits, KnownNat aruser_bits)
+     KnownNat_AXI4_ARFlit id_bits addr_bits aruser_bits
   => Interface (Source (AXI4_ARFlit id_bits addr_bits aruser_bits)) where
 
   toIfc src = toPorts
@@ -238,7 +277,7 @@ instance {-# OVERLAPPING #-}
 
 -- | Flatten 'Sink's of 'ARFlit's for AXI4 compliant interface
 instance {-# OVERLAPPING #-}
-  (KnownNat id_bits, KnownNat addr_bits, KnownNat aruser_bits)
+     KnownNat_AXI4_ARFlit id_bits addr_bits aruser_bits
   => Interface (Sink (AXI4_ARFlit id_bits addr_bits aruser_bits)) where
 
   toIfc snk = toPorts
@@ -260,9 +299,8 @@ instance {-# OVERLAPPING #-}
 
 -- | Flatten 'Source's of 'RFlit's for AXI4 compliant interface
 instance {-# OVERLAPPING #-}
-  (KnownNat id_bits, KnownNat ruser_bits,
-     KnownNat data_bytes, KnownNat (data_bytes * 8))
-  => Interface (Source (AXI4_RFlit id_bits data_bytes ruser_bits)) where
+     KnownNat_AXI4_RFlit id_bits log_data_bytes ruser_bits
+  => Interface (Source (AXI4_RFlit id_bits log_data_bytes ruser_bits)) where
 
   toIfc src = toPorts
     (portName "rvalid",           src.canPeek)
@@ -283,8 +321,8 @@ instance {-# OVERLAPPING #-}
 
 -- | Flatten 'Sink's of 'RFlit's for AXI4 compliant interface
 instance {-# OVERLAPPING #-}
-  (KnownNat id_bits, KnownNat data_bytes, KnownNat ruser_bits)
-  => Interface (Sink (AXI4_RFlit id_bits data_bytes ruser_bits)) where
+     KnownNat_AXI4_RFlit id_bits log_data_bytes ruser_bits
+  => Interface (Sink (AXI4_RFlit id_bits log_data_bytes ruser_bits)) where
 
   toIfc snk = toPorts
     (portName "rready", snk.canPut)

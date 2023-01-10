@@ -5,7 +5,7 @@ module Blarney.AXI4.Interfaces (
 , AXI4_Params_Container (..)
 , type IdWidth
 , type AddrWidth
-, type DataWidth
+, type LogDataBytes
 , type AWUserWidth
 , type WUserWidth
 , type BUserWidth
@@ -32,7 +32,7 @@ data AXI4_Params_Container =
   AXI4_Params
     Nat -- ^ Number of bits for the AXI4 id fields
     Nat -- ^ Number of bits for the AXI4 address
-    Nat -- ^ Number of *bytes* for the AXI4 data
+    Nat -- ^ Log of number of *bytes* for the AXI4 data
     Nat -- ^ Number of bits for the AW user field
     Nat -- ^ Number of bits for the W user field
     Nat -- ^ Number of bits for the B user field
@@ -48,8 +48,8 @@ type family AddrWidth params where
   AddrWidth (AXI4_Params id a d awu wu bu aru ru) = a
 
 -- | Select width (bytes) of data from `AXI4_Params`
-type family DataWidth params where
-  DataWidth (AXI4_Params id a d awu wu bu aru ru) = d
+type family LogDataBytes params where
+  LogDataBytes (AXI4_Params id a d awu wu bu aru ru) = d
 
 -- | Select width (bits) of AW user field from `AXI4_Params`
 type family AWUserWidth params where
@@ -75,8 +75,9 @@ type family RUserWidth params where
 type KnownNat_AXI4_Params (p :: AXI4_Params_Container) =
   ( KnownNat (IdWidth p)
   , KnownNat (AddrWidth p)
-  , KnownNat (DataWidth p)
-  , KnownNat (DataWidth p * 8)
+  , KnownNat (LogDataBytes p)
+  , KnownNat (2^LogDataBytes p)
+  , KnownNat ((2^LogDataBytes p)*8)
   , KnownNat (AWUserWidth p)
   , KnownNat (WUserWidth p)
   , KnownNat (BUserWidth p)
@@ -88,20 +89,20 @@ type KnownNat_AXI4_Params (p :: AXI4_Params_Container) =
 data AXI4_Manager (p :: AXI4_Params_Container) =
   AXI4_Manager {
     aw :: Source (AXI4_AWFlit (IdWidth p) (AddrWidth p) (AWUserWidth p))
-  , w  :: Source (AXI4_WFlit (DataWidth p) (WUserWidth p))
+  , w  :: Source (AXI4_WFlit (LogDataBytes p) (WUserWidth p))
   , b  :: Sink   (AXI4_BFlit (IdWidth p) (BUserWidth p))
   , ar :: Source (AXI4_ARFlit (IdWidth p) (AddrWidth p) (ARUserWidth p))
-  , r  :: Sink   (AXI4_RFlit (IdWidth p) (DataWidth p) (RUserWidth p))
+  , r  :: Sink   (AXI4_RFlit (IdWidth p) (LogDataBytes p) (RUserWidth p))
   } deriving Generic
 
 -- | AXI4 subordinate
 data AXI4_Subordinate (p :: AXI4_Params_Container) =
   AXI4_Subordinate {
     aw :: Sink   (AXI4_AWFlit (IdWidth p) (AddrWidth p) (AWUserWidth p))
-  , w  :: Sink   (AXI4_WFlit (DataWidth p) (WUserWidth p))
+  , w  :: Sink   (AXI4_WFlit (LogDataBytes p) (WUserWidth p))
   , b  :: Source (AXI4_BFlit (IdWidth p) (BUserWidth p))
   , ar :: Sink   (AXI4_ARFlit (IdWidth p) (AddrWidth p) (ARUserWidth p))
-  , r  :: Source (AXI4_RFlit (IdWidth p) (DataWidth p) (RUserWidth p))
+  , r  :: Source (AXI4_RFlit (IdWidth p) (LogDataBytes p) (RUserWidth p))
   } deriving Generic
 
 -- | AXI4 shim
@@ -114,8 +115,7 @@ data AXI4_Shim ps pm =
 -- Interface instances
 
 -- | 'AXI4_Manager' is an 'Interface'
-instance (KnownNat_AXI4_Params p, KnownNat (DataWidth p * 8)) =>
-           Interface (AXI4_Manager p) where
+instance KnownNat_AXI4_Params p => Interface (AXI4_Manager p) where
   toIfc m = toPorts
     (portSkipName, m.aw)
     (portSkipName, m.w)
@@ -126,8 +126,7 @@ instance (KnownNat_AXI4_Params p, KnownNat (DataWidth p * 8)) =>
   fromIfc ifc = fromPorts ifc \aw w b ar r -> AXI4_Manager {..}
 
 -- | 'AXI4_Subordinate' is an 'Interface'
-instance (KnownNat_AXI4_Params p, KnownNat (DataWidth p * 8)) =>
-           Interface (AXI4_Subordinate p) where
+instance KnownNat_AXI4_Params p => Interface (AXI4_Subordinate p) where
   toIfc m = toPorts
     (portSkipName, m.aw)
     (portSkipName, m.w)

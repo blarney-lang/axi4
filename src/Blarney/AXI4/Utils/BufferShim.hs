@@ -13,10 +13,10 @@ import Blarney.AXI4.Interfaces
 makeAXI4BufferShim_Core ::
   -- type aliases and constraints
   ( awflit ~ AXI4_AWFlit (IdWidth p) (AddrWidth p) (AWUserWidth p)
-  , wflit  ~ AXI4_WFlit  (DataWidth p) (WUserWidth p)
+  , wflit  ~ AXI4_WFlit  (LogDataBytes p) (WUserWidth p)
   , bflit  ~ AXI4_BFlit  (IdWidth p) (BUserWidth p)
   , arflit ~ AXI4_ARFlit (IdWidth p) (AddrWidth p) (ARUserWidth p)
-  , rflit  ~ AXI4_RFlit  (IdWidth p) (DataWidth p) (RUserWidth p)
+  , rflit  ~ AXI4_RFlit  (IdWidth p) (LogDataBytes p) (RUserWidth p)
   , ToSource aw_buff awflit, ToSink aw_buff awflit
   , ToSource w_buff wflit, ToSink w_buff wflit
   , ToSource b_buff bflit, ToSink b_buff bflit
