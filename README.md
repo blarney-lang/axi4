@@ -29,11 +29,11 @@ AXI4_Params :: Nat     -- Id width (bits)
             -> Nat     -- B user width (bits)
             -> Nat     -- AR user width (bits)
             -> Nat     -- R user width (bits)
-            -> AXI4_Params_Container
+            -> AXI4_Params_Kind
 ```
 
 Individual parameters can be selected from a type of kind
-`AXI4_Params_Container` using the following type families.
+`AXI4_Params_Kind` using the following type families.
 
 ```haskell
 IdWidth      (AXI4_Params id a d awu wu bu aru ru) = id
@@ -51,7 +51,7 @@ of AXI4 channels in various directions:
 
 ```haskell
 -- | AXI4 manager
-data AXI4_Manager (p :: AXI4_Params_Container) =
+data AXI4_Manager (p :: AXI4_Params_Kind) =
   AXI4_Manager {
     aw :: Source (AXI4_AWFlit (IdWidth p) (AddrWidth p) (AWUserWidth p))
   , w  :: Source (AXI4_WFlit (LogDataBytes p) (WUserWidth p))
@@ -61,7 +61,7 @@ data AXI4_Manager (p :: AXI4_Params_Container) =
   }
 
 -- | AXI4 subordinate
-data AXI4_Subordinate (p :: AXI4_Params_Container) =
+data AXI4_Subordinate (p :: AXI4_Params_Kind) =
   AXI4_Subordinate {
     aw :: Sink   (AXI4_AWFlit (IdWidth p) (AddrWidth p) (AWUserWidth p))
   , w  :: Sink   (AXI4_WFlit (LogDataBytes p) (WUserWidth p))
@@ -71,8 +71,8 @@ data AXI4_Subordinate (p :: AXI4_Params_Container) =
   }
 
 -- | AXI4 shim
-data AXI4_Shim (ps :: AXI4_Params_Container)
-               (pm :: AXI4_Params_Container) =
+data AXI4_Shim (ps :: AXI4_Params_Kind)
+               (pm :: AXI4_Params_Kind) =
   AXI4_Shim {
     subordinate :: AXI4_Subordinate ps
   , manager     :: AXI4_Manager pm
@@ -103,7 +103,7 @@ data AXI4_AWFlit id_bits addr_bits awuser_bits =
 data AXI4_WFlit log_data_bytes wuser_bits =
   AXI4_WFlit {
     wdata :: Vec (2^log_data_bytes) (Bit 8)
-  , wstrb :: Bit (2^data_bytes)
+  , wstrb :: Bit (2^log_data_bytes)
   , wlast :: Bit 1
   , wuser :: Bit wuser_bits
   }

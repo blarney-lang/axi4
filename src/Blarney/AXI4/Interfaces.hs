@@ -2,7 +2,7 @@
 
 module Blarney.AXI4.Interfaces (
   AXI4_RFlit (..)
-, AXI4_Params_Container (..)
+, AXI4_Params_Kind (..)
 , type IdWidth
 , type AddrWidth
 , type LogDataBytes
@@ -28,7 +28,7 @@ import Blarney.AXI4.Flits
 import Blarney.AXI4CommonTypes
 
 -- | AXI4 parameter container, primarily for use as a kind rather than a type
-data AXI4_Params_Container =
+data AXI4_Params_Kind =
   AXI4_Params
     Nat -- ^ Number of bits for the AXI4 id fields
     Nat -- ^ Number of bits for the AXI4 address
@@ -72,7 +72,7 @@ type family RUserWidth params where
   RUserWidth (AXI4_Params id a d awu wu bu aru ru) = ru
 
 -- | Constraint synonym for 'KnownNat' over fields of 'AXI4_Params'
-type KnownNat_AXI4_Params (p :: AXI4_Params_Container) =
+type KnownNat_AXI4_Params (p :: AXI4_Params_Kind) =
   ( KnownNat (IdWidth p)
   , KnownNat (AddrWidth p)
   , KnownNat (LogDataBytes p)
@@ -86,7 +86,7 @@ type KnownNat_AXI4_Params (p :: AXI4_Params_Container) =
   )
 
 -- | AXI4 manager
-data AXI4_Manager (p :: AXI4_Params_Container) =
+data AXI4_Manager (p :: AXI4_Params_Kind) =
   AXI4_Manager {
     aw :: Source (AXI4_AWFlit (IdWidth p) (AddrWidth p) (AWUserWidth p))
   , w  :: Source (AXI4_WFlit (LogDataBytes p) (WUserWidth p))
@@ -96,7 +96,7 @@ data AXI4_Manager (p :: AXI4_Params_Container) =
   } deriving Generic
 
 -- | AXI4 subordinate
-data AXI4_Subordinate (p :: AXI4_Params_Container) =
+data AXI4_Subordinate (p :: AXI4_Params_Kind) =
   AXI4_Subordinate {
     aw :: Sink   (AXI4_AWFlit (IdWidth p) (AddrWidth p) (AWUserWidth p))
   , w  :: Sink   (AXI4_WFlit (LogDataBytes p) (WUserWidth p))
